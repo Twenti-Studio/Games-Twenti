@@ -1,0 +1,28 @@
+# Dockerfile for Fly.io - Backend only
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies for Prisma
+RUN apk add --no-cache openssl
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy application code
+COPY server.js ./
+COPY routes ./routes/
+COPY database ./database/
+
+# Expose port (Fly.io uses 8080 by default)
+EXPOSE 8080
+
+# Start command
+CMD ["node", "server.js"]
