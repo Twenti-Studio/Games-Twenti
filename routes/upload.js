@@ -69,6 +69,29 @@ router.post('/image', requireAuth, upload.single('image'), (req, res) => {
   }
 });
 
+// Upload payment proof (public - no auth required)
+router.post('/payment-proof', upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Return the URL path to the uploaded file
+    const fileUrl = `/uploads/${req.file.filename}`;
+    
+    res.json({
+      success: true,
+      url: fileUrl,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload file' });
+  }
+});
+
 // Delete uploaded file (admin only)
 router.delete('/image/:filename', requireAuth, (req, res) => {
   try {

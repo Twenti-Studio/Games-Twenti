@@ -1,5 +1,6 @@
+import { ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { adminAPI } from '../../utils/api';
+import { adminAPI, getImageUrl } from '../../utils/api';
 
 function OrderHistory() {
   const [orders, setOrders] = useState([]);
@@ -171,6 +172,29 @@ function OrderHistory() {
                           <span className="text-gray-900 dark:text-gray-100">{value}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Proof */}
+                {selectedOrder.payment_proof && (
+                  <div className="pt-4">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Payment Proof</p>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <img 
+                        src={getImageUrl(selectedOrder.payment_proof)} 
+                        alt="Payment Proof"
+                        className="max-w-full max-h-64 rounded-lg border border-gray-200 dark:border-gray-600"
+                      />
+                      <a 
+                        href={getImageUrl(selectedOrder.payment_proof)} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center mt-3 text-sm text-primary-600 hover:text-primary-700"
+                      >
+                        <ExternalLink size={14} className="mr-1" />
+                        Open in new tab
+                      </a>
                     </div>
                   </div>
                 )}

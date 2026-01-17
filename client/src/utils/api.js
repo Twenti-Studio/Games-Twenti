@@ -19,8 +19,18 @@ export const publicAPI = {
   getProductsByCategory: (categoryId) => api.get(`/products/category/${categoryId}`),
   getProduct: (id) => api.get(`/products/${id}`),
   getPackages: (productId) => api.get(`/packages/product/${productId}`),
+  getPaymentSettings: () => api.get('/public/payment-settings'),
   getCheckoutUrl: (data) => api.post('/public/checkout-url', data),
   createOrder: (data) => api.post('/orders', data),
+  uploadPaymentProof: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/upload/payment-proof', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 // Auth API

@@ -52,6 +52,26 @@ router.get('/homepage', async (req, res) => {
   }
 });
 
+// Get payment settings (public)
+router.get('/payment-settings', async (req, res) => {
+  try {
+    const bankName = await prisma.setting.findUnique({ where: { key: 'payment_bank_name' } });
+    const accountNumber = await prisma.setting.findUnique({ where: { key: 'payment_account_number' } });
+    const accountName = await prisma.setting.findUnique({ where: { key: 'payment_account_name' } });
+    const qrCode = await prisma.setting.findUnique({ where: { key: 'payment_qr_code' } });
+
+    res.json({
+      bank_name: bankName?.value || '',
+      account_number: accountNumber?.value || '',
+      account_name: accountName?.value || '',
+      qr_code: qrCode?.value || ''
+    });
+  } catch (error) {
+    console.error('Error fetching payment settings:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get WhatsApp checkout URL
 router.post('/checkout-url', async (req, res) => {
   try {
@@ -99,7 +119,7 @@ router.post('/checkout-url', async (req, res) => {
 
     const whatsappNumber = whatsappSetting?.value || '6281234567890';
     const messageTemplate = templateSetting?.value || 
-      'Halo! Saya ingin membeli:\n\n*Produk:* {product_name}\n*Kategori:* {category_name}\n*Paket:* {package_name}\n*Harga:* Rp {price}\n\n*Data yang diperlukan:*\n{user_data}\n\n*Waktu Pemesanan:* {order_time}';
+      'Halo! Saya ingin membeli:\n\n*Produk:* {product_name}\n*Kategori:* {category_name}\n*Paket:* {package_name}\n*Harga:* Rp {price}\n\n*Data yang diperlukan:*\n{user_data}\n\n{payment_proof}\n\n*Waktu Pemesanan:* {order_time}';
 
     // Format user data
     const userDataText = Object.entries(user_data)
@@ -112,6 +132,12 @@ router.post('/checkout-url', async (req, res) => {
       timeStyle: 'medium'
     });
 
+    // Format payment proof text
+    let paymentProofText = '';
+    if (payment_proof) {
+      paymentProofText = `*Bukti Pembayaran:* ${payment_proof}`;
+    }
+
     // Build message
     const priceNumber = Number(pkg.price);
     let message = messageTemplate
@@ -120,6 +146,7 @@ router.post('/checkout-url', async (req, res) => {
       .replace('{package_name}', pkg.name)
       .replace('{price}', priceNumber.toLocaleString('id-ID'))
       .replace('{user_data}', userDataText)
+      .replace('{payment_proof}', paymentProofText)
       .replace('{order_time}', orderTime);
 
     // Encode message for URL

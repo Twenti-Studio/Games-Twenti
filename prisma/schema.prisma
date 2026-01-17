@@ -68,6 +68,7 @@ model Order {
   packageName  String   @map("package_name") @db.VarChar(255)
   price        Decimal  @db.Decimal(15, 2)
   userData     Json     @map("user_data")
+  paymentProof String?  @map("payment_proof") @db.Text
   status       String   @default("pending") @db.VarChar(50)
   createdAt    DateTime @default(now()) @map("created_at")
   

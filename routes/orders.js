@@ -14,6 +14,7 @@ const transformOrder = (order) => ({
   package_name: order.packageName,
   price: parseFloat(order.price),
   user_data: order.userData,
+  payment_proof: order.paymentProof,
   status: order.status,
   created_at: order.createdAt
 });
@@ -21,7 +22,7 @@ const transformOrder = (order) => ({
 // Create order (public - from checkout)
 router.post('/', async (req, res) => {
   try {
-    const { product_id, package_id, user_data } = req.body;
+    const { product_id, package_id, user_data, payment_proof } = req.body;
     
     if (!product_id || !package_id || !user_data) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -65,6 +66,7 @@ router.post('/', async (req, res) => {
         packageName: pkg.name,
         price: pkg.price,
         userData: user_data,
+        paymentProof: payment_proof || null,
         status: 'pending'
       }
     });
