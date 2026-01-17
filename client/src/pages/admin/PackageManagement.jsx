@@ -23,10 +23,12 @@ function PackageManagement() {
         publicAPI.getProduct(productId),
         adminAPI.getPackages(productId)
       ]);
-      setProduct(productRes.data);
-      setPackages(packagesRes.data);
+      setProduct(productRes.data || null);
+      setPackages(Array.isArray(packagesRes.data) ? packagesRes.data : []);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setProduct(null);
+      setPackages([]);
     } finally {
       setLoading(false);
     }

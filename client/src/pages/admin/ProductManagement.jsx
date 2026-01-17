@@ -31,10 +31,12 @@ function ProductManagement() {
         adminAPI.getProducts(),
         adminAPI.getCategories()
       ]);
-      setProducts(productsRes.data);
-      setCategories(categoriesRes.data);
+      setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+      setCategories(Array.isArray(categoriesRes.data) ? categoriesRes.data : []);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setProducts([]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }

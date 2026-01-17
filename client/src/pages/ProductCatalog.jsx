@@ -31,7 +31,7 @@ function ProductCatalog() {
   const fetchCategories = async () => {
     try {
       const response = await publicAPI.getCategories();
-      const data = response.data || [];
+      const data = Array.isArray(response.data) ? response.data : [];
       setCategories(data);
       if (categoryId) {
         const category = data.find(c => c.id === parseInt(categoryId));
@@ -48,7 +48,7 @@ function ProductCatalog() {
   const fetchAllProducts = async () => {
     try {
       const response = await publicAPI.getProducts();
-      setProducts(response.data || []);
+      setProducts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching products:', error);
       setProducts([]);
@@ -60,7 +60,7 @@ function ProductCatalog() {
   const fetchProductsByCategory = async (id) => {
     try {
       const response = await publicAPI.getProductsByCategory(id);
-      setProducts(response.data || []);
+      setProducts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching products by category:', error);
       setProducts([]);
@@ -69,8 +69,8 @@ function ProductCatalog() {
     }
   };
 
-  // Filter products by search
-  const filteredProducts = products.filter(product =>
+  // Filter products by search - ensure products is always an array
+  const filteredProducts = (Array.isArray(products) ? products : []).filter(product =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );

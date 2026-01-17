@@ -40,7 +40,7 @@ function ProductDetail() {
   const fetchPackages = async () => {
     try {
       const response = await publicAPI.getPackages(id);
-      const data = response.data || [];
+      const data = Array.isArray(response.data) ? response.data : [];
       setPackages(data);
       if (data.length > 0) {
         setSelectedPackage(data[0].id);

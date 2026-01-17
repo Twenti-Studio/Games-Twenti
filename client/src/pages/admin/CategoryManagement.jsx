@@ -16,9 +16,10 @@ function CategoryManagement() {
   const fetchCategories = async () => {
     try {
       const response = await adminAPI.getCategories();
-      setCategories(response.data);
+      setCategories(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      setCategories([]);
     } finally {
       setLoading(false);
     }

@@ -21,11 +21,10 @@ function Home() {
   const fetchHomepageData = async () => {
     try {
       const response = await publicAPI.getHomepage();
-      // Ensure we have valid data with defaults
-      setData({
-        categories: response.data?.categories || [],
-        featuredProducts: response.data?.featuredProducts || []
-      });
+      // Ensure we have valid arrays with proper type checking
+      const categories = Array.isArray(response.data?.categories) ? response.data.categories : [];
+      const featuredProducts = Array.isArray(response.data?.featuredProducts) ? response.data.featuredProducts : [];
+      setData({ categories, featuredProducts });
     } catch (error) {
       console.error('Error fetching homepage data:', error);
       // Keep default empty arrays on error

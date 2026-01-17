@@ -13,9 +13,10 @@ function OrderHistory() {
   const fetchOrders = async () => {
     try {
       const response = await adminAPI.getOrders();
-      setOrders(response.data);
+      setOrders(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching orders:', error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }

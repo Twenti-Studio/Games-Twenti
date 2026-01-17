@@ -24,9 +24,9 @@ function AdminDashboard() {
         adminAPI.getOrders()
       ]);
 
-      const categories = categoriesRes.data;
-      const products = productsRes.data;
-      const orders = ordersRes.data;
+      const categories = Array.isArray(categoriesRes.data) ? categoriesRes.data : [];
+      const products = Array.isArray(productsRes.data) ? productsRes.data : [];
+      const orders = Array.isArray(ordersRes.data) ? ordersRes.data : [];
 
       setStats({
         categories: categories.length,
@@ -38,6 +38,8 @@ function AdminDashboard() {
       setRecentOrders(orders.slice(0, 5));
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setStats({ categories: 0, products: 0, orders: 0, pendingOrders: 0 });
+      setRecentOrders([]);
     } finally {
       setLoading(false);
     }
