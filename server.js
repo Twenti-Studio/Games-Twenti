@@ -17,10 +17,26 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Test database connection
-prisma.$connect()
-  .then(() => console.log('✓ Database connected'))
-  .catch((err) => console.error('✗ Database connection failed:', err));
+// Test database connection with retry
+const connectDB = async (retries = 5) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await prisma.$connect();
+      console.log('✓ Database connected');
+      return true;
+    } catch (err) {
+      console.error(`✗ Database connection attempt ${i + 1} failed:`, err.message);
+      if (i < retries - 1) {
+        console.log('Retrying in 3 seconds...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
+  }
+  console.error('✗ All database connection attempts failed');
+  return false;
+};
+
+connectDB();
 
 // CORS Configuration
 const allowedOrigins = [
@@ -73,9 +89,29 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/public', publicRoutes);
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'Game Twenti API', version: '1.0.0' });
+});
+
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  try {
+    // Test database connection
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ 
+      status: 'ok', 
+      database: 'connected',
+      timestamp: new Date().toISOString() 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      status: 'error', 
+      database: 'disconnected',
+      error: err.message,
+      timestamp: new Date().toISOString() 
+    });
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
