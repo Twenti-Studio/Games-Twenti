@@ -31,24 +31,27 @@ function ProductCatalog() {
   const fetchCategories = async () => {
     try {
       const response = await publicAPI.getCategories();
-      setCategories(response.data);
+      const data = response.data || [];
+      setCategories(data);
       if (categoryId) {
-        const category = response.data.find(c => c.id === parseInt(categoryId));
-        setSelectedCategory(category);
+        const category = data.find(c => c.id === parseInt(categoryId));
+        setSelectedCategory(category || null);
       } else {
         setSelectedCategory(null);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
+      setCategories([]);
     }
   };
 
   const fetchAllProducts = async () => {
     try {
       const response = await publicAPI.getProducts();
-      setProducts(response.data);
+      setProducts(response.data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -57,9 +60,10 @@ function ProductCatalog() {
   const fetchProductsByCategory = async (id) => {
     try {
       const response = await publicAPI.getProductsByCategory(id);
-      setProducts(response.data);
+      setProducts(response.data || []);
     } catch (error) {
       console.error('Error fetching products by category:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }

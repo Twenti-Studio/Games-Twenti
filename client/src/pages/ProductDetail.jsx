@@ -40,12 +40,14 @@ function ProductDetail() {
   const fetchPackages = async () => {
     try {
       const response = await publicAPI.getPackages(id);
-      setPackages(response.data);
-      if (response.data.length > 0) {
-        setSelectedPackage(response.data[0].id);
+      const data = response.data || [];
+      setPackages(data);
+      if (data.length > 0) {
+        setSelectedPackage(data[0].id);
       }
     } catch (error) {
       console.error('Error fetching packages:', error);
+      setPackages([]);
     }
   };
 
