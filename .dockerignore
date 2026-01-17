@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+client/node_modules
+
+# Build output (we build inside Docker)
+client/dist
+
+# Development files
+.git
+.gitignore
+*.md
+!README.md
+
+# Environment files (will be provided via docker-compose)
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+.replit
+replit.nix
+setup-env.js
+ENV_SETUP.md
+QUICKSTART.md
+
+# Prisma migrations lock
+prisma/migrations/**/migration_lock.toml

@@ -3,9 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import session from 'express-session';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { initDatabase } from './database/db.js';
+import prisma from './database/prisma.js';
 import authRoutes from './routes/auth.js';
 import categoryRoutes from './routes/categories.js';
 import orderRoutes from './routes/orders.js';
@@ -16,22 +14,29 @@ import settingsRoutes from './routes/settings.js';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize database
-initDatabase().catch(console.error);
+// Test database connection
+prisma.$connect()
+  .then(() => console.log('✓ Database connected'))
+  .catch((err) => console.error('✗ Database connection failed:', err));
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production' 
+    ? (process.env.CLIENT_URL || true)
+    : 'http://localhost:5173',
   credentials: true
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Trust proxy for secure cookies behind reverse proxy (Render)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
@@ -39,6 +44,7 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-origin
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -52,13 +58,10 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/public', publicRoutes);
 
-// Serve static files from React app in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/dist/index.html'));
-  });
-}
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
