@@ -1,0 +1,23 @@
+run = "npm run dev"
+entrypoint = "server.js"
+language = "nodejs"
+
+[nix]
+channel = "stable-22_11"
+
+[deploy]
+run = ["sh", "-c", "cd client && npm run build"]
+
+[env]
+NODE_ENV = "production"
+PORT = "3000"
+CLIENT_URL = "http://localhost:5173"
+
+[packager]
+language = "nodejs"
+ignoredPackages = ["**/node_modules"]
+
+[packager.features]
+enabledForHosting = false
+packageSearch = true
+guessImports = true

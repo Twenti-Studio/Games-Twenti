@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+client/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+client/dist/
+build/
+
+# Database (SQLite - jika masih digunakan)
+database/*.db
+*.sqlite
+*.sqlite3
+
+# Prisma
+prisma/migrations/**/migration_lock.toml
+
+# Generated files
+/generated/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.bak
+*.tmp
