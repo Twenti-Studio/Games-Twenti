@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { adminAPI } from '../../utils/api';
+import { adminAPI, getImageUrl } from '../../utils/api';
 
 function ProductManagement() {
   const [products, setProducts] = useState([]);
@@ -20,6 +20,9 @@ function ProductManagement() {
   });
   const [inputFields, setInputFields] = useState([]);
   const [error, setError] = useState('');
+  const [imageMode, setImageMode] = useState('url'); // 'url' or 'upload'
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -57,6 +60,14 @@ function ProductManagement() {
         enabled: product.enabled === 1
       });
       setInputFields(fields);
+      // Set image preview if exists
+      if (product.image_url) {
+        setImagePreview(getImageUrl(product.image_url));
+        setImageMode(product.image_url.startsWith('/uploads') ? 'upload' : 'url');
+      } else {
+        setImagePreview(null);
+        setImageMode('url');
+      }
     } else {
       setEditingProduct(null);
       setFormData({
@@ -70,6 +81,8 @@ function ProductManagement() {
         enabled: true
       });
       setInputFields([]);
+      setImagePreview(null);
+      setImageMode('url');
     }
     setError('');
     setShowModal(true);
@@ -90,6 +103,44 @@ function ProductManagement() {
     });
     setInputFields([]);
     setError('');
+    setImagePreview(null);
+    setImageMode('url');
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Only image files are allowed (JPEG, PNG, GIF, WebP)');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    try {
+      const response = await adminAPI.uploadImage(file);
+      setFormData({ ...formData, image_url: response.data.url });
+      setImagePreview(getImageUrl(response.data.url));
+    } catch (error) {
+      setError(error.response?.data?.error || 'Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData({ ...formData, image_url: '' });
+    setImagePreview(null);
   };
 
   const addInputField = () => {
@@ -307,15 +358,101 @@ function ProductManagement() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Image URL
+                    Product Image
                   </label>
-                  <input
-                    type="url"
-                    className="input-field"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  
+                  {/* Image Mode Toggle */}
+                  <div className="flex space-x-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setImageMode('url')}
+                      className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        imageMode === 'url'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <Link2 size={16} className="mr-2" />
+                      URL Link
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageMode('upload')}
+                      className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        imageMode === 'upload'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <Upload size={16} className="mr-2" />
+                      Upload File
+                    </button>
+                  </div>
+
+                  {/* URL Input */}
+                  {imageMode === 'url' && (
+                    <input
+                      type="url"
+                      className="input-field"
+                      value={formData.image_url}
+                      onChange={(e) => {
+                        setFormData({ ...formData, image_url: e.target.value });
+                        setImagePreview(e.target.value || null);
+                      }}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  )}
+
+                  {/* File Upload */}
+                  {imageMode === 'upload' && (
+                    <div className="space-y-3">
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          {uploading ? (
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
+                          ) : (
+                            <>
+                              <Upload size={24} className="text-gray-400 mb-2" />
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Click to upload or drag and drop
+                              </p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500">
+                                PNG, JPG, GIF, WebP (max 5MB)
+                              </p>
+                            </>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploading}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="mt-3 relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-32 w-auto rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>

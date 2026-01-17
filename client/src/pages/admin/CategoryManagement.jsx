@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { adminAPI } from '../../utils/api';
+import { adminAPI, getImageUrl } from '../../utils/api';
 
 function CategoryManagement() {
   const [categories, setCategories] = useState([]);
@@ -8,6 +8,9 @@ function CategoryManagement() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({ name: '', slug: '', description: '', icon: '' });
   const [error, setError] = useState('');
+  const [iconMode, setIconMode] = useState('emoji'); // 'emoji', 'url', or 'upload'
+  const [uploading, setUploading] = useState(false);
+  const [iconPreview, setIconPreview] = useState(null);
 
   useEffect(() => {
     fetchCategories();
@@ -34,9 +37,24 @@ function CategoryManagement() {
         description: category.description || '',
         icon: category.icon || ''
       });
+      // Determine icon mode based on value
+      if (category.icon) {
+        if (category.icon.startsWith('/uploads') || category.icon.startsWith('http')) {
+          setIconMode(category.icon.startsWith('/uploads') ? 'upload' : 'url');
+          setIconPreview(getImageUrl(category.icon));
+        } else {
+          setIconMode('emoji');
+          setIconPreview(null);
+        }
+      } else {
+        setIconMode('emoji');
+        setIconPreview(null);
+      }
     } else {
       setEditingCategory(null);
       setFormData({ name: '', slug: '', description: '', icon: '' });
+      setIconMode('emoji');
+      setIconPreview(null);
     }
     setError('');
     setShowModal(true);
@@ -47,6 +65,42 @@ function CategoryManagement() {
     setEditingCategory(null);
     setFormData({ name: '', slug: '', description: '', icon: '' });
     setError('');
+    setIconMode('emoji');
+    setIconPreview(null);
+  };
+
+  const handleIconUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Only image files are allowed');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    try {
+      const response = await adminAPI.uploadImage(file);
+      setFormData({ ...formData, icon: response.data.url });
+      setIconPreview(getImageUrl(response.data.url));
+    } catch (error) {
+      setError(error.response?.data?.error || 'Failed to upload icon');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveIcon = () => {
+    setFormData({ ...formData, icon: '' });
+    setIconPreview(null);
   };
 
   const handleSubmit = async (e) => {
@@ -113,7 +167,17 @@ function CategoryManagement() {
                 {categories.length > 0 ? (
                   categories.map((category) => (
                     <tr key={category.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                      <td className="py-3 px-4 text-2xl">{category.icon || '📦'}</td>
+                      <td className="py-3 px-4">
+                        {category.icon?.startsWith('/uploads') || category.icon?.startsWith('http') ? (
+                          <img 
+                            src={getImageUrl(category.icon)} 
+                            alt={category.name}
+                            className="w-10 h-10 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <span className="text-2xl">{category.icon || '📦'}</span>
+                        )}
+                      </td>
                       <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">{category.name}</td>
                       <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 font-mono">{category.slug}</td>
                       <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{category.description || '-'}</td>
@@ -217,15 +281,114 @@ function CategoryManagement() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Icon (Emoji)
+                    Icon
                   </label>
-                  <input
-                    type="text"
-                    className="input-field text-2xl"
-                    value={formData.icon}
-                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    placeholder="🎮"
-                  />
+                  
+                  {/* Icon Mode Toggle */}
+                  <div className="flex space-x-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => { setIconMode('emoji'); setIconPreview(null); }}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        iconMode === 'emoji'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      😀 Emoji
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setIconMode('url'); setIconPreview(formData.icon?.startsWith('http') ? formData.icon : null); }}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        iconMode === 'url'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <Link2 size={14} className="mr-1" />
+                      URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIconMode('upload')}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        iconMode === 'upload'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <Upload size={14} className="mr-1" />
+                      Upload
+                    </button>
+                  </div>
+
+                  {/* Emoji Input */}
+                  {iconMode === 'emoji' && (
+                    <input
+                      type="text"
+                      className="input-field text-2xl"
+                      value={formData.icon}
+                      onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                      placeholder="🎮"
+                    />
+                  )}
+
+                  {/* URL Input */}
+                  {iconMode === 'url' && (
+                    <input
+                      type="url"
+                      className="input-field"
+                      value={formData.icon}
+                      onChange={(e) => {
+                        setFormData({ ...formData, icon: e.target.value });
+                        setIconPreview(e.target.value || null);
+                      }}
+                      placeholder="https://example.com/icon.png"
+                    />
+                  )}
+
+                  {/* File Upload */}
+                  {iconMode === 'upload' && (
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <div className="flex flex-col items-center justify-center py-4">
+                        {uploading ? (
+                          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-600"></div>
+                        ) : (
+                          <>
+                            <Upload size={20} className="text-gray-400 mb-1" />
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Click to upload icon</p>
+                          </>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleIconUpload}
+                        disabled={uploading}
+                      />
+                    </label>
+                  )}
+
+                  {/* Icon Preview */}
+                  {iconPreview && (iconMode === 'url' || iconMode === 'upload') && (
+                    <div className="mt-3 relative inline-block">
+                      <img
+                        src={iconPreview}
+                        alt="Icon Preview"
+                        className="h-16 w-16 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveIcon}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-end space-x-3 pt-4">

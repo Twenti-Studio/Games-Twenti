@@ -58,6 +58,26 @@ export const adminAPI = {
   // Settings
   getSettings: () => api.get('/settings'),
   updateSetting: (key, value) => api.put(`/settings/${key}`, { value }),
+  
+  // Upload
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/upload/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  deleteImage: (filename) => api.delete(`/upload/image/${filename}`),
+};
+
+// Helper to get full image URL
+export const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const baseUrl = API_BASE_URL.replace('/api', '');
+  return `${baseUrl}${path}`;
 };
 
 export default api;

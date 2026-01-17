@@ -15,6 +15,12 @@ console.log('Database URL exists:', !!process.env.DATABASE_URL);
 import prisma from './database/prisma.js';
 console.log('Prisma imported');
 
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 import authRoutes from './routes/auth.js';
 import categoryRoutes from './routes/categories.js';
 import orderRoutes from './routes/orders.js';
@@ -22,6 +28,7 @@ import packageRoutes from './routes/packages.js';
 import productRoutes from './routes/products.js';
 import publicRoutes from './routes/public.js';
 import settingsRoutes from './routes/settings.js';
+import uploadRoutes from './routes/upload.js';
 console.log('Routes imported');
 
 const app = express();
@@ -90,6 +97,9 @@ app.use(session({
   }
 }));
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -98,6 +108,7 @@ app.use('/api/packages', packageRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
