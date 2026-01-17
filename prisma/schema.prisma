@@ -3,9 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl is only needed for local migrations, not production runtime
+  // Uncomment below when running migrations locally:
+  // directUrl = env("DIRECT_URL")
 }
 
 model Category {
