@@ -244,15 +244,15 @@ function ProductDetail() {
             <div className="md:w-72 h-56 md:h-auto bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 flex-shrink-0">
               {product.imageUrl ? (
                 <img 
-                  src={product.imageUrl} 
+                  src={getImageUrl(product.imageUrl)} 
                   alt={product.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Gamepad2 size={64} className="text-primary-400 dark:text-primary-600" />
-                </div>
-              )}
+              ) : null}
+              <div className={`w-full h-full items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}>
+                <Gamepad2 size={64} className="text-primary-400 dark:text-primary-600" />
+              </div>
             </div>
             
             {/* Info */}
@@ -291,21 +291,36 @@ function ProductDetail() {
                   }`}
                 >
                   {selectedPackage === pkg.id && (
-                    <div className="absolute top-3 right-3 w-6 h-6 bg-primary-600 rounded-full flex items-center justify-center">
+                    <div className="absolute top-3 right-3 w-6 h-6 bg-primary-600 rounded-full flex items-center justify-center z-10">
                       <Check size={14} className="text-white" />
                     </div>
                   )}
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1 pr-8">
-                    {pkg.name}
-                  </h3>
-                  {pkg.description && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                      {pkg.description}
-                    </p>
-                  )}
-                  <p className="text-xl font-bold text-secondary-500">
-                    Rp {Number(pkg.price).toLocaleString('id-ID')}
-                  </p>
+                  <div className="flex gap-3">
+                    {/* Package Image */}
+                    {pkg.imageUrl && (
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={getImageUrl(pkg.imageUrl)} 
+                          alt={pkg.name}
+                          className="w-16 h-16 rounded-lg object-cover"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1 pr-8 truncate">
+                        {pkg.name}
+                      </h3>
+                      {pkg.description && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
+                          {pkg.description}
+                        </p>
+                      )}
+                      <p className="text-xl font-bold text-secondary-500">
+                        Rp {Number(pkg.price).toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

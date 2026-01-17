@@ -4,6 +4,13 @@ import { requireAuth } from './auth.js';
 
 const router = express.Router();
 
+// Helper to transform package to snake_case
+const transformPackage = (pkg) => ({
+  ...pkg,
+  image_url: pkg.imageUrl,
+  imageUrl: undefined
+});
+
 // Get packages by product (public - only enabled)
 router.get('/product/:productId', async (req, res) => {
   try {
@@ -17,7 +24,7 @@ router.get('/product/:productId', async (req, res) => {
       orderBy: { price: 'asc' }
     });
 
-    res.json(packages);
+    res.json(packages.map(transformPackage));
   } catch (error) {
     console.error('Error fetching packages:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -34,7 +41,7 @@ router.get('/product/:productId/admin', requireAuth, async (req, res) => {
       orderBy: { price: 'asc' }
     });
 
-    res.json(packages);
+    res.json(packages.map(transformPackage));
   } catch (error) {
     console.error('Error fetching packages:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -52,7 +59,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
     
-    res.json(pkg);
+    res.json(transformPackage(pkg));
   } catch (error) {
     console.error('Error fetching package:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -62,7 +69,7 @@ router.get('/:id', async (req, res) => {
 // Create package (admin only)
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { product_id, name, description, price, enabled } = req.body;
+    const { product_id, name, description, image_url, price, enabled } = req.body;
     
     if (!product_id || !name || price === undefined) {
       return res.status(400).json({ error: 'Product ID, name, and price are required' });
@@ -77,12 +84,17 @@ router.post('/', requireAuth, async (req, res) => {
         productId: parseInt(product_id),
         name,
         description: description || null,
+        imageUrl: image_url || null,
         price: parseFloat(price),
         enabled: enabled !== undefined ? Boolean(enabled) : true
       }
     });
 
-    res.status(201).json(pkg);
+    // Transform to snake_case for frontend
+    res.status(201).json({
+      ...pkg,
+      image_url: pkg.imageUrl
+    });
   } catch (error) {
     console.error('Error creating package:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -92,7 +104,7 @@ router.post('/', requireAuth, async (req, res) => {
 // Update package (admin only)
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const { name, description, price, enabled } = req.body;
+    const { name, description, image_url, price, enabled } = req.body;
     const id = parseInt(req.params.id);
 
     const existing = await prisma.package.findUnique({ where: { id } });
@@ -109,12 +121,17 @@ router.put('/:id', requireAuth, async (req, res) => {
       data: {
         name: name || existing.name,
         description: description !== undefined ? description : existing.description,
+        imageUrl: image_url !== undefined ? image_url : existing.imageUrl,
         price: price !== undefined ? parseFloat(price) : existing.price,
         enabled: enabled !== undefined ? Boolean(enabled) : existing.enabled
       }
     });
 
-    res.json(updated);
+    // Transform to snake_case for frontend
+    res.json({
+      ...updated,
+      image_url: updated.imageUrl
+    });
   } catch (error) {
     console.error('Error updating package:', error);
     res.status(500).json({ error: 'Internal server error' });

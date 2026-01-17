@@ -1,7 +1,7 @@
 import { ArrowRight, Clock, Gamepad2, Headphones, Shield, Tv, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { publicAPI } from '../utils/api';
+import { getImageUrl, publicAPI } from '../utils/api';
 
 // Map category icons
 const categoryIcons = {
@@ -149,8 +149,18 @@ function Home() {
                   {/* Accent Border */}
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-secondary-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
                   
-                  <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-secondary-100 dark:group-hover:bg-secondary-900/30 transition-colors">
-                    <IconComponent size={32} className="text-primary-600 dark:text-primary-400 group-hover:text-secondary-500 transition-colors" />
+                  <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-secondary-100 dark:group-hover:bg-secondary-900/30 transition-colors overflow-hidden">
+                    {category.icon?.startsWith('/uploads') || category.icon?.startsWith('http') ? (
+                      <img 
+                        src={getImageUrl(category.icon)} 
+                        alt={category.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : category.icon && !category.icon.includes('/') ? (
+                      <span className="text-3xl">{category.icon}</span>
+                    ) : (
+                      <IconComponent size={32} className="text-primary-600 dark:text-primary-400 group-hover:text-secondary-500 transition-colors" />
+                    )}
                   </div>
                   
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 dark:group-hover:text-secondary-400 transition-colors">
@@ -206,15 +216,15 @@ function Home() {
                   <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 relative overflow-hidden">
                     {product.imageUrl ? (
                       <img 
-                        src={product.imageUrl} 
+                        src={getImageUrl(product.imageUrl)} 
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Gamepad2 size={48} className="text-primary-400 dark:text-primary-600" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div className={`w-full h-full items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}>
+                      <Gamepad2 size={48} className="text-primary-400 dark:text-primary-600" />
+                    </div>
                     {/* Category Badge */}
                     <div className="absolute top-3 left-3">
                       <span className="px-3 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-semibold text-primary-600 dark:text-secondary-400">

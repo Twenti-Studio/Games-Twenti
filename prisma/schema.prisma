@@ -15,7 +15,7 @@ model Category {
   name        String    @unique @db.VarChar(255)
   slug        String    @unique @db.VarChar(255)
   description String?   @db.Text
-  icon        String?   @db.VarChar(50)
+  icon        String?   @db.Text
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   products    Product[]
@@ -48,6 +48,7 @@ model Package {
   productId   Int       @map("product_id")
   name        String    @db.VarChar(255)
   description String?   @db.Text
+  imageUrl    String?   @map("image_url") @db.Text
   price       Decimal   @db.Decimal(15, 2)
   enabled     Boolean   @default(true)
   createdAt   DateTime  @default(now()) @map("created_at")

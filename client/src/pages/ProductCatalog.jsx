@@ -1,7 +1,7 @@
 import { Filter, Gamepad2, Package, Search, Tv, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { publicAPI } from '../utils/api';
+import { getImageUrl, publicAPI } from '../utils/api';
 
 // Map category icons
 const categoryIcons = {
@@ -185,15 +185,15 @@ function ProductCatalog() {
                 <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 relative overflow-hidden">
                   {product.imageUrl ? (
                     <img 
-                      src={product.imageUrl} 
+                      src={getImageUrl(product.imageUrl)} 
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Gamepad2 size={48} className="text-primary-400 dark:text-primary-600" />
-                    </div>
-                  )}
+                  ) : null}
+                  <div className={`w-full h-full items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}>
+                    <Gamepad2 size={48} className="text-primary-400 dark:text-primary-600" />
+                  </div>
                   {/* Category Badge */}
                   <div className="absolute top-3 left-3">
                     <span className="px-3 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-semibold text-primary-600 dark:text-secondary-400">

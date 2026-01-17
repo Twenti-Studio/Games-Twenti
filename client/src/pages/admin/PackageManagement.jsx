@@ -1,6 +1,7 @@
+import { Link2, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { adminAPI, publicAPI } from '../../utils/api';
+import { adminAPI, getImageUrl, publicAPI } from '../../utils/api';
 
 function PackageManagement() {
   const { productId } = useParams();
@@ -9,8 +10,11 @@ function PackageManagement() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', price: '', enabled: true });
+  const [formData, setFormData] = useState({ name: '', description: '', price: '', image_url: '', enabled: true });
   const [error, setError] = useState('');
+  const [imageMode, setImageMode] = useState('url');
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -41,11 +45,21 @@ function PackageManagement() {
         name: pkg.name,
         description: pkg.description || '',
         price: pkg.price,
+        image_url: pkg.image_url || '',
         enabled: pkg.enabled === 1
       });
+      if (pkg.image_url) {
+        setImagePreview(getImageUrl(pkg.image_url));
+        setImageMode(pkg.image_url.startsWith('/uploads') ? 'upload' : 'url');
+      } else {
+        setImagePreview(null);
+        setImageMode('url');
+      }
     } else {
       setEditingPackage(null);
-      setFormData({ name: '', description: '', price: '', enabled: true });
+      setFormData({ name: '', description: '', price: '', image_url: '', enabled: true });
+      setImagePreview(null);
+      setImageMode('url');
     }
     setError('');
     setShowModal(true);
@@ -54,8 +68,38 @@ function PackageManagement() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingPackage(null);
-    setFormData({ name: '', description: '', price: '', enabled: true });
+    setFormData({ name: '', description: '', price: '', image_url: '', enabled: true });
     setError('');
+    setImagePreview(null);
+    setImageMode('url');
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    try {
+      const response = await adminAPI.uploadImage(file);
+      setFormData({ ...formData, image_url: response.data.url });
+      setImagePreview(getImageUrl(response.data.url));
+    } catch (error) {
+      setError(error.response?.data?.error || 'Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData({ ...formData, image_url: '' });
+    setImagePreview(null);
   };
 
   const handleSubmit = async (e) => {
@@ -128,6 +172,7 @@ function PackageManagement() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Image</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Description</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Price</th>
@@ -139,6 +184,19 @@ function PackageManagement() {
                 {packages.length > 0 ? (
                   packages.map((pkg) => (
                     <tr key={pkg.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <td className="py-3 px-4">
+                        {pkg.image_url ? (
+                          <img 
+                            src={getImageUrl(pkg.image_url)} 
+                            alt={pkg.name}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+                            -
+                          </div>
+                        )}
+                      </td>
                       <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">{pkg.name}</td>
                       <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{pkg.description || '-'}</td>
                       <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Rp {pkg.price.toLocaleString('id-ID')}</td>
@@ -167,7 +225,7 @@ function PackageManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan="6" className="py-12 text-center text-gray-500 dark:text-gray-400">
                       No packages found. Create your first package!
                     </td>
                   </tr>
@@ -244,6 +302,96 @@ function PackageManagement() {
                     min="0"
                     step="0.01"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Package Image
+                  </label>
+                  
+                  {/* Image Mode Toggle */}
+                  <div className="flex space-x-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setImageMode('url')}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        imageMode === 'url'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <Link2 size={14} className="mr-1" />
+                      URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageMode('upload')}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        imageMode === 'upload'
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <Upload size={14} className="mr-1" />
+                      Upload
+                    </button>
+                  </div>
+
+                  {/* URL Input */}
+                  {imageMode === 'url' && (
+                    <input
+                      type="url"
+                      className="input-field"
+                      value={formData.image_url}
+                      onChange={(e) => {
+                        setFormData({ ...formData, image_url: e.target.value });
+                        setImagePreview(e.target.value || null);
+                      }}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  )}
+
+                  {/* File Upload */}
+                  {imageMode === 'upload' && (
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <div className="flex flex-col items-center justify-center py-4">
+                        {uploading ? (
+                          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-600"></div>
+                        ) : (
+                          <>
+                            <Upload size={20} className="text-gray-400 mb-1" />
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Click to upload</p>
+                          </>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploading}
+                      />
+                    </label>
+                  )}
+
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="mt-3 relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-20 w-auto rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>
