@@ -1,9 +1,20 @@
+console.log('=== Server starting ===');
+
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import session from 'express-session';
+
+dotenv.config();
+
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Port:', process.env.PORT);
+console.log('Database URL exists:', !!process.env.DATABASE_URL);
+
 import prisma from './database/prisma.js';
+console.log('Prisma imported');
+
 import authRoutes from './routes/auth.js';
 import categoryRoutes from './routes/categories.js';
 import orderRoutes from './routes/orders.js';
@@ -11,8 +22,7 @@ import packageRoutes from './routes/packages.js';
 import productRoutes from './routes/products.js';
 import publicRoutes from './routes/public.js';
 import settingsRoutes from './routes/settings.js';
-
-dotenv.config();
+console.log('Routes imported');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -114,6 +124,21 @@ app.get('/health', async (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+// Handle uncaught errors
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Start server
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✓ Server running on port ${PORT}`);
+  console.log(`✓ Health check: http://localhost:${PORT}/health`);
+});
+
+server.on('error', (err) => {
+  console.error('Server error:', err);
 });
