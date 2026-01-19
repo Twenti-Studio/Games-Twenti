@@ -229,6 +229,84 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 });
 
+// Partial update product (admin only) - PATCH
+router.patch('/:id', requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const existing = await prisma.product.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Build update data only with provided fields
+    const updateData = {};
+
+    if (req.body.category_id !== undefined) {
+      updateData.categoryId = parseInt(req.body.category_id);
+    }
+    if (req.body.name !== undefined) {
+      updateData.name = req.body.name;
+    }
+    if (req.body.slug !== undefined) {
+      updateData.slug = req.body.slug;
+    }
+    if (req.body.description !== undefined) {
+      updateData.description = req.body.description;
+    }
+    if (req.body.image_url !== undefined) {
+      updateData.imageUrl = req.body.image_url;
+    }
+    if (req.body.service_type !== undefined) {
+      updateData.serviceType = req.body.service_type;
+    }
+    if (req.body.enabled !== undefined) {
+      updateData.enabled = Boolean(req.body.enabled);
+    }
+    if (req.body.input_fields !== undefined) {
+      try {
+        const parsedFields = typeof req.body.input_fields === 'string' 
+          ? JSON.parse(req.body.input_fields) 
+          : req.body.input_fields;
+        if (!Array.isArray(parsedFields)) {
+          throw new Error('input_fields must be an array');
+        }
+        updateData.inputFields = parsedFields;
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid input_fields format' });
+      }
+    }
+
+    // If no fields to update
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No fields provided for update' });
+    }
+
+    const updated = await prisma.product.update({
+      where: { id },
+      data: updateData,
+      include: {
+        category: {
+          select: { name: true, slug: true }
+        }
+      }
+    });
+
+    res.json({
+      ...updated,
+      category_name: updated.category.name,
+      category_slug: updated.category.slug,
+      category: undefined
+    });
+  } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Product with this slug already exists' });
+    }
+    console.error('Error patching product:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Delete product (admin only)
 router.delete('/:id', requireAuth, async (req, res) => {
   try {

@@ -138,6 +138,58 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 });
 
+// Partial update package (admin only) - PATCH
+router.patch('/:id', requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const existing = await prisma.package.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Package not found' });
+    }
+
+    // Build update data only with provided fields
+    const updateData = {};
+
+    if (req.body.name !== undefined) {
+      updateData.name = req.body.name;
+    }
+    if (req.body.description !== undefined) {
+      updateData.description = req.body.description;
+    }
+    if (req.body.image_url !== undefined) {
+      updateData.imageUrl = req.body.image_url;
+    }
+    if (req.body.price !== undefined) {
+      if (isNaN(req.body.price) || req.body.price < 0) {
+        return res.status(400).json({ error: 'Price must be a valid positive number' });
+      }
+      updateData.price = parseFloat(req.body.price);
+    }
+    if (req.body.enabled !== undefined) {
+      updateData.enabled = Boolean(req.body.enabled);
+    }
+
+    // If no fields to update
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No fields provided for update' });
+    }
+
+    const updated = await prisma.package.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({
+      ...updated,
+      image_url: updated.imageUrl
+    });
+  } catch (error) {
+    console.error('Error patching package:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Delete package (admin only)
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
