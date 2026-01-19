@@ -75,7 +75,7 @@ router.get('/payment-settings', async (req, res) => {
 // Get WhatsApp checkout URL
 router.post('/checkout-url', async (req, res) => {
   try {
-    const { product_id, package_id, user_data } = req.body;
+    const { product_id, package_id, user_data, payment_proof } = req.body;
     
     if (!product_id || !package_id || !user_data) {
       return res.status(400).json({ error: 'Missing required fields' });
