@@ -1,7 +1,7 @@
 import { Link2, Upload, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { adminAPI, getImageUrl } from '../../utils/api';
+import { adminAPI, getChangedFields, getImageUrl } from '../../utils/api';
 
 function ProductManagement() {
   const [products, setProducts] = useState([]);
@@ -24,6 +24,7 @@ function ProductManagement() {
   const [imageMode, setImageMode] = useState('url'); // 'url' or 'upload'
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const originalDataRef = useRef(null); // Store original data for comparison
 
   useEffect(() => {
     fetchData();
@@ -50,7 +51,7 @@ function ProductManagement() {
     if (product) {
       setEditingProduct(product);
       const fields = JSON.parse(product.input_fields || '[]');
-      setFormData({
+      const initialData = {
         category_id: product.category_id,
         name: product.name,
         slug: product.slug,
@@ -59,7 +60,10 @@ function ProductManagement() {
         service_type: product.service_type,
         input_fields: product.input_fields,
         enabled: product.enabled === 1
-      });
+      };
+      setFormData(initialData);
+      // Store original data for comparison
+      originalDataRef.current = { ...initialData, input_fields: JSON.stringify(fields) };
       setInputFields(fields);
       // Set image preview if exists
       if (product.image_url) {
@@ -84,6 +88,7 @@ function ProductManagement() {
       setInputFields([]);
       setImagePreview(null);
       setImageMode('url');
+      originalDataRef.current = null;
     }
     setError('');
     setShowModal(true);
@@ -106,6 +111,7 @@ function ProductManagement() {
     setError('');
     setImagePreview(null);
     setImageMode('url');
+    originalDataRef.current = null;
   };
 
   const handleImageUpload = async (e) => {
@@ -162,7 +168,7 @@ function ProductManagement() {
     e.preventDefault();
     setError('');
 
-    const submitData = {
+    const currentData = {
       ...formData,
       input_fields: JSON.stringify(inputFields),
       enabled: formData.enabled ? 1 : 0
@@ -170,9 +176,22 @@ function ProductManagement() {
 
     try {
       if (editingProduct) {
-        await adminAPI.updateProduct(editingProduct.id, submitData);
+        // Get only changed fields for PATCH
+        const originalData = {
+          ...originalDataRef.current,
+          enabled: originalDataRef.current.enabled ? 1 : 0
+        };
+        const changedFields = getChangedFields(originalData, currentData);
+        
+        // Only send request if there are changes
+        if (Object.keys(changedFields).length === 0) {
+          handleCloseModal();
+          return;
+        }
+        
+        await adminAPI.patchProduct(editingProduct.id, changedFields);
       } else {
-        await adminAPI.createProduct(submitData);
+        await adminAPI.createProduct(currentData);
       }
       handleCloseModal();
       fetchData();

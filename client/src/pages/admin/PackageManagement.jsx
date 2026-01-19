@@ -1,7 +1,7 @@
 import { Link2, Upload, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { adminAPI, getImageUrl, publicAPI } from '../../utils/api';
+import { adminAPI, getChangedFields, getImageUrl, publicAPI } from '../../utils/api';
 
 function PackageManagement() {
   const { productId } = useParams();
@@ -15,6 +15,7 @@ function PackageManagement() {
   const [imageMode, setImageMode] = useState('url');
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const originalDataRef = useRef(null); // Store original data for comparison
 
   useEffect(() => {
     fetchData();
@@ -41,13 +42,16 @@ function PackageManagement() {
   const handleOpenModal = (pkg = null) => {
     if (pkg) {
       setEditingPackage(pkg);
-      setFormData({
+      const initialData = {
         name: pkg.name,
         description: pkg.description || '',
         price: pkg.price,
         image_url: pkg.image_url || '',
         enabled: pkg.enabled === 1
-      });
+      };
+      setFormData(initialData);
+      // Store original data for comparison
+      originalDataRef.current = { ...initialData };
       if (pkg.image_url) {
         setImagePreview(getImageUrl(pkg.image_url));
         setImageMode(pkg.image_url.startsWith('/uploads') ? 'upload' : 'url');
@@ -60,6 +64,7 @@ function PackageManagement() {
       setFormData({ name: '', description: '', price: '', image_url: '', enabled: true });
       setImagePreview(null);
       setImageMode('url');
+      originalDataRef.current = null;
     }
     setError('');
     setShowModal(true);
@@ -72,6 +77,7 @@ function PackageManagement() {
     setError('');
     setImagePreview(null);
     setImageMode('url');
+    originalDataRef.current = null;
   };
 
   const handleImageUpload = async (e) => {
@@ -106,18 +112,34 @@ function PackageManagement() {
     e.preventDefault();
     setError('');
 
-    const submitData = {
+    const currentData = {
       ...formData,
-      product_id: parseInt(productId),
       price: parseFloat(formData.price),
       enabled: formData.enabled ? 1 : 0
     };
 
     try {
       if (editingPackage) {
-        await adminAPI.updatePackage(editingPackage.id, submitData);
+        // Get only changed fields for PATCH
+        const originalData = {
+          ...originalDataRef.current,
+          price: parseFloat(originalDataRef.current.price),
+          enabled: originalDataRef.current.enabled ? 1 : 0
+        };
+        const changedFields = getChangedFields(originalData, currentData);
+        
+        // Only send request if there are changes
+        if (Object.keys(changedFields).length === 0) {
+          handleCloseModal();
+          return;
+        }
+        
+        await adminAPI.patchPackage(editingPackage.id, changedFields);
       } else {
-        await adminAPI.createPackage(submitData);
+        await adminAPI.createPackage({
+          ...currentData,
+          product_id: parseInt(productId)
+        });
       }
       handleCloseModal();
       fetchData();

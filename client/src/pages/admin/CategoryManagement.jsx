@@ -1,6 +1,6 @@
 import { Link2, Upload, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { adminAPI, getImageUrl } from '../../utils/api';
+import { useEffect, useRef, useState } from 'react';
+import { adminAPI, getChangedFields, getImageUrl } from '../../utils/api';
 
 function CategoryManagement() {
   const [categories, setCategories] = useState([]);
@@ -12,6 +12,7 @@ function CategoryManagement() {
   const [iconMode, setIconMode] = useState('emoji'); // 'emoji', 'url', or 'upload'
   const [uploading, setUploading] = useState(false);
   const [iconPreview, setIconPreview] = useState(null);
+  const originalDataRef = useRef(null); // Store original data for comparison
 
   useEffect(() => {
     fetchCategories();
@@ -32,12 +33,15 @@ function CategoryManagement() {
   const handleOpenModal = (category = null) => {
     if (category) {
       setEditingCategory(category);
-      setFormData({
+      const initialData = {
         name: category.name,
         slug: category.slug,
         description: category.description || '',
         icon: category.icon || ''
-      });
+      };
+      setFormData(initialData);
+      // Store original data for comparison
+      originalDataRef.current = { ...initialData };
       // Determine icon mode based on value
       if (category.icon) {
         if (category.icon.startsWith('/uploads') || category.icon.startsWith('http')) {
@@ -56,6 +60,7 @@ function CategoryManagement() {
       setFormData({ name: '', slug: '', description: '', icon: '' });
       setIconMode('emoji');
       setIconPreview(null);
+      originalDataRef.current = null;
     }
     setError('');
     setShowModal(true);
@@ -68,6 +73,7 @@ function CategoryManagement() {
     setError('');
     setIconMode('emoji');
     setIconPreview(null);
+    originalDataRef.current = null;
   };
 
   const handleIconUpload = async (e) => {
@@ -110,7 +116,16 @@ function CategoryManagement() {
 
     try {
       if (editingCategory) {
-        await adminAPI.updateCategory(editingCategory.id, formData);
+        // Get only changed fields for PATCH
+        const changedFields = getChangedFields(originalDataRef.current, formData);
+        
+        // Only send request if there are changes
+        if (Object.keys(changedFields).length === 0) {
+          handleCloseModal();
+          return;
+        }
+        
+        await adminAPI.patchCategory(editingCategory.id, changedFields);
       } else {
         await adminAPI.createCategory(formData);
       }

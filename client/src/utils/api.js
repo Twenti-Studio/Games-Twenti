@@ -46,24 +46,28 @@ export const adminAPI = {
   getCategories: () => api.get('/categories'),
   createCategory: (data) => api.post('/categories', data),
   updateCategory: (id, data) => api.put(`/categories/${id}`, data),
+  patchCategory: (id, data) => api.patch(`/categories/${id}`, data),
   deleteCategory: (id) => api.delete(`/categories/${id}`),
   
   // Products
   getProducts: () => api.get('/products/admin'),
   createProduct: (data) => api.post('/products', data),
   updateProduct: (id, data) => api.put(`/products/${id}`, data),
+  patchProduct: (id, data) => api.patch(`/products/${id}`, data),
   deleteProduct: (id) => api.delete(`/products/${id}`),
   
   // Packages
   getPackages: (productId) => api.get(`/packages/product/${productId}/admin`),
   createPackage: (data) => api.post('/packages', data),
   updatePackage: (id, data) => api.put(`/packages/${id}`, data),
+  patchPackage: (id, data) => api.patch(`/packages/${id}`, data),
   deletePackage: (id) => api.delete(`/packages/${id}`),
   
   // Orders
   getOrders: () => api.get('/orders'),
   getOrder: (id) => api.get(`/orders/${id}`),
   updateOrderStatus: (id, status) => api.put(`/orders/${id}/status`, { status }),
+  patchOrder: (id, data) => api.patch(`/orders/${id}`, data),
   
   // Settings
   getSettings: () => api.get('/settings'),
@@ -80,6 +84,17 @@ export const adminAPI = {
     });
   },
   deleteImage: (filename) => api.delete(`/upload/image/${filename}`),
+};
+
+// Helper to get changed fields only (for PATCH requests)
+export const getChangedFields = (original, current) => {
+  const changes = {};
+  for (const key in current) {
+    if (JSON.stringify(original[key]) !== JSON.stringify(current[key])) {
+      changes[key] = current[key];
+    }
+  }
+  return changes;
 };
 
 // Helper to get full image URL
