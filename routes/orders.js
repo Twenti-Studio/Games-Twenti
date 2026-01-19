@@ -138,4 +138,48 @@ router.put('/:id/status', requireAuth, async (req, res) => {
   }
 });
 
+// Partial update order (admin only) - PATCH
+router.patch('/:id', requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const existing = await prisma.order.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Build update data only with provided fields
+    const updateData = {};
+
+    if (req.body.status !== undefined) {
+      const validStatuses = ['pending', 'processing', 'completed', 'cancelled'];
+      if (!validStatuses.includes(req.body.status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+      updateData.status = req.body.status;
+    }
+    if (req.body.payment_proof !== undefined) {
+      updateData.paymentProof = req.body.payment_proof;
+    }
+    if (req.body.user_data !== undefined) {
+      updateData.userData = req.body.user_data;
+    }
+
+    // If no fields to update
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No fields provided for update' });
+    }
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json(transformOrder(updated));
+  } catch (error) {
+    console.error('Error patching order:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
