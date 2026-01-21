@@ -77,7 +77,7 @@ function Footer() {
               </li>
               <li className="flex items-center space-x-3">
                 <Phone size={18} className="text-secondary-400" />
-                <span>+62 812 3456 7890 (WhatsApp)</span>
+                <span>+62 851 9913 1536 (WhatsApp)</span>
               </li>
               <li className="flex items-start space-x-3">
                 <MapPin size={18} className="text-secondary-400 mt-0.5" />
