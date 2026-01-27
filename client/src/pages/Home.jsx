@@ -1,4 +1,4 @@
-import { ArrowRight, Clock, Gamepad2, Headphones, Shield, Tv, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, Clock, FileSpreadsheet, Gamepad2, Headphones, Layout, Package, Shield, Tv, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getImageUrl, publicAPI } from '../utils/api';
@@ -8,6 +8,13 @@ const categoryIcons = {
   'game': Gamepad2,
   'digital-subscription': Tv,
   'social-media-services': Users,
+  'ebook': BookOpen,
+  'e-book': BookOpen,
+  'template': Layout,
+  'template-spreadsheet': FileSpreadsheet,
+  'template-wordpress': Layout,
+  'digital-product': Package,
+  'digital': Package,
 };
 
 function Home() {
@@ -248,6 +255,92 @@ function Home() {
           </div>
         </section>
       )}
+
+      {/* Digital Products Section */}
+      <section className="py-16 lg:py-20 bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center px-4 py-2 bg-secondary-100 dark:bg-secondary-900/30 rounded-full text-secondary-700 dark:text-secondary-300 text-sm font-medium mb-6">
+                <BookOpen size={16} className="mr-2" />
+                Digital Products
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                E-Books & Templates <span className="text-secondary-500">Berkualitas</span>
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
+                Dapatkan koleksi e-book, template spreadsheet, tema WordPress, dan berbagai produk digital lainnya dengan harga terjangkau dan instant download.
+              </p>
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <BookOpen size={20} className="text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">E-Books</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Tutorial & Guide</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileSpreadsheet size={20} className="text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Spreadsheet</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Excel & Sheets</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Layout size={20} className="text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">WordPress</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Themes & Plugins</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Package size={20} className="text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Digital Assets</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Various Files</p>
+                  </div>
+                </div>
+              </div>
+              <Link 
+                to="/digital" 
+                className="btn btn-primary btn-lg group"
+              >
+                Browse Digital Products
+                <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+            
+            {/* Decorative Cards */}
+            <div className="hidden lg:block relative">
+              <div className="absolute -top-4 -left-4 w-72 h-48 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-xl transform -rotate-6"></div>
+              <div className="absolute top-8 left-8 w-72 h-48 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-2xl shadow-xl transform rotate-3"></div>
+              <div className="relative w-72 h-48 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 ml-16 mt-12 border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center">
+                    <BookOpen size={24} className="text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 dark:text-white">E-Book Template</p>
+                    <p className="text-sm text-gray-500">PDF Format</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-bold text-secondary-500">Rp 49.000</span>
+                  <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Instant</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="py-16 lg:py-20 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800">

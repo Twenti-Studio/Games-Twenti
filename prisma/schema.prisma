@@ -3,11 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // directUrl is only needed for local migrations, not production runtime
-  // Uncomment below when running migrations locally:
-  // directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Category {
@@ -50,6 +48,8 @@ model Package {
   description String?   @db.Text
   imageUrl    String?   @map("image_url") @db.Text
   price       Decimal   @db.Decimal(15, 2)
+  downloadUrl String?   @map("download_url") @db.Text  // For digital products
+  fileType    String?   @map("file_type") @db.VarChar(50)  // e.g., PDF, XLSX, ZIP
   enabled     Boolean   @default(true)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -68,6 +68,9 @@ model Order {
   categoryName String   @map("category_name") @db.VarChar(255)
   packageName  String   @map("package_name") @db.VarChar(255)
   price        Decimal  @db.Decimal(15, 2)
+  originalPrice Decimal? @map("original_price") @db.Decimal(15, 2)
+  discountAmount Decimal? @map("discount_amount") @db.Decimal(15, 2)
+  promoCode    String?  @map("promo_code") @db.VarChar(100)
   userData     Json     @map("user_data")
   paymentProof String?  @map("payment_proof") @db.Text
   status       String   @default("pending") @db.VarChar(50)
@@ -77,6 +80,24 @@ model Order {
   package      Package  @relation(fields: [packageId], references: [id])
 
   @@map("orders")
+}
+
+model PromoCode {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique @db.VarChar(100)
+  discountType  String    @map("discount_type") @db.VarChar(20) // 'percentage' or 'fixed'
+  discountValue Decimal   @map("discount_value") @db.Decimal(15, 2)
+  minPurchase   Decimal?  @map("min_purchase") @db.Decimal(15, 2)
+  maxDiscount   Decimal?  @map("max_discount") @db.Decimal(15, 2) // For percentage type
+  usageLimit    Int?      @map("usage_limit")
+  usageCount    Int       @default(0) @map("usage_count")
+  startDate     DateTime? @map("start_date")
+  endDate       DateTime? @map("end_date")
+  enabled       Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("promo_codes")
 }
 
 model Setting {

@@ -29,10 +29,11 @@ import productRoutes from './routes/products.js';
 import publicRoutes from './routes/public.js';
 import settingsRoutes from './routes/settings.js';
 import uploadRoutes from './routes/upload.js';
+import promoRoutes from './routes/promo.js';
 console.log('Routes imported');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Test database connection with retry
 const connectDB = async (retries = 5) => {
@@ -58,7 +59,7 @@ connectDB();
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://localhost:3000',
+  'http://localhost:3001',
   'https://games-twenti.vercel.app',
   process.env.CLIENT_URL
 ].filter(Boolean);
@@ -109,6 +110,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/promo', promoRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

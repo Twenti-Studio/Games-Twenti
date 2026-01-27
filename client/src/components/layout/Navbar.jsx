@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   FolderOpen,
   Home,
   LayoutDashboard,
@@ -8,6 +9,7 @@ import {
   Settings,
   ShoppingCart,
   Store,
+  Tag,
   X
 } from 'lucide-react';
 import { useState } from 'react';
@@ -22,14 +24,17 @@ function Navbar({ isAdmin = false, onLogout }) {
 
   const publicLinks = [
     { to: '/', label: 'Home', icon: Home },
-    { to: '/products', label: 'Products', icon: Store },
+    { to: '/products', label: 'Game Top-Up', icon: Store },
+    { to: '/digital', label: 'Digital Products', icon: BookOpen },
   ];
 
   const adminLinks = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/categories', label: 'Categories', icon: FolderOpen },
-    { to: '/admin/products', label: 'Products', icon: Package },
+    { to: '/admin/products', label: 'Game Products', icon: Package },
+    { to: '/admin/digital-products', label: 'Digital Products', icon: BookOpen },
     { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+    { to: '/admin/promo', label: 'Promo Codes', icon: Tag },
     { to: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 

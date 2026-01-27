@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -22,6 +22,7 @@ export const publicAPI = {
   getPaymentSettings: () => api.get('/public/payment-settings'),
   getCheckoutUrl: (data) => api.post('/public/checkout-url', data),
   createOrder: (data) => api.post('/orders', data),
+  validatePromoCode: (code, price) => api.post('/promo/validate', { code, price }),
   uploadPaymentProof: (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -68,6 +69,14 @@ export const adminAPI = {
   getOrder: (id) => api.get(`/orders/${id}`),
   updateOrderStatus: (id, status) => api.put(`/orders/${id}/status`, { status }),
   patchOrder: (id, data) => api.patch(`/orders/${id}`, data),
+  
+  // Promo Codes
+  getPromoCodes: () => api.get('/promo'),
+  getPromoCode: (id) => api.get(`/promo/${id}`),
+  createPromoCode: (data) => api.post('/promo', data),
+  updatePromoCode: (id, data) => api.put(`/promo/${id}`, data),
+  patchPromoCode: (id, data) => api.patch(`/promo/${id}`, data),
+  deletePromoCode: (id) => api.delete(`/promo/${id}`),
   
   // Settings
   getSettings: () => api.get('/settings'),

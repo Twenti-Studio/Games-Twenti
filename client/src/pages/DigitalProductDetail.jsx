@@ -1,17 +1,35 @@
-import { AlertCircle, ArrowLeft, Check, CheckCircle, Copy, CreditCard, Gamepad2, Loader2, Tag, Upload, X } from 'lucide-react';
+import {
+  AlertCircle, ArrowLeft, BookOpen, Check, CheckCircle, ChevronLeft, ChevronRight,
+  Copy, CreditCard, Download, Eye, FileSpreadsheet, FileText, Layout,
+  Loader2, Package, Shield, Star, Tag, Upload, X, Zap
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getImageUrl, publicAPI } from '../utils/api';
 
-function ProductDetail() {
+// Map product type icons
+const productTypeIcons = {
+  'ebook': BookOpen,
+  'template-spreadsheet': FileSpreadsheet,
+  'template-wordpress': Layout,
+  'template': Layout,
+  'digital-product': Package,
+};
+
+function DigitalProductDetail() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  
+  // User data for digital products
+  const [formData, setFormData] = useState({
+    email: '',
+    name: ''
+  });
   
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -20,6 +38,10 @@ function ProductDetail() {
   const [paymentProofPreview, setPaymentProofPreview] = useState(null);
   const [uploadingProof, setUploadingProof] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Image gallery state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
   
   // Promo code state
   const [promoCode, setPromoCode] = useState('');
@@ -51,12 +73,6 @@ function ProductDetail() {
     try {
       const response = await publicAPI.getProduct(id);
       setProduct(response.data);
-      const inputFields = response.data.inputFields || [];
-      const initialData = {};
-      inputFields.forEach(field => {
-        initialData[field.name] = '';
-      });
-      setFormData(initialData);
     } catch (error) {
       console.error('Error fetching product:', error);
       setError('Product not found');
@@ -79,6 +95,26 @@ function ProductDetail() {
     }
   };
 
+  // Get product type
+  const getProductType = (product) => {
+    const serviceType = product?.service_type?.toLowerCase() || '';
+    if (serviceType.includes('ebook')) return 'ebook';
+    if (serviceType.includes('spreadsheet') || serviceType.includes('excel') || serviceType.includes('sheet')) return 'template-spreadsheet';
+    if (serviceType.includes('wordpress') || serviceType.includes('theme')) return 'template-wordpress';
+    if (serviceType.includes('template')) return 'template';
+    return 'digital-product';
+  };
+
+  // Get product images (main + gallery from description if any)
+  const getProductImages = () => {
+    const images = [];
+    if (product?.imageUrl) {
+      images.push(product.imageUrl);
+    }
+    // Could parse additional images from product data if needed
+    return images.length > 0 ? images : [null];
+  };
+
   const handleInputChange = (name, value) => {
     setFormData(prev => ({
       ...prev,
@@ -91,26 +127,22 @@ function ProductDetail() {
       setError('Please select a package');
       return false;
     }
-
-    const inputFields = product.inputFields || [];
-    for (const field of inputFields) {
-      if (field.required && !formData[field.name]) {
-        setError(`${field.label} is required`);
-        return false;
-      }
+    if (!formData.email) {
+      setError('Email is required for product delivery');
+      return false;
     }
-
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
     return true;
   };
 
   const handleProceedToPayment = () => {
     setError('');
-    
     if (!validateForm()) {
       return;
     }
-
-    // Show payment modal
     setShowPaymentModal(true);
   };
 
@@ -127,14 +159,12 @@ function ProductDetail() {
     setError('');
 
     try {
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setPaymentProofPreview(reader.result);
       };
       reader.readAsDataURL(file);
       
-      // Upload file
       const response = await publicAPI.uploadPaymentProof(file);
       setPaymentProofUrl(response.data.url);
     } catch (error) {
@@ -249,6 +279,8 @@ function ProductDetail() {
     return Number(selectedPkg.price);
   };
 
+  const productImages = getProductImages();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -268,201 +300,319 @@ function ProductDetail() {
             <AlertCircle size={40} className="text-red-500" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Product Not Found</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">The product you're looking for doesn't exist</p>
-          <Link to="/products" className="btn btn-primary">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">The digital product you're looking for doesn't exist</p>
+          <Link to="/digital" className="btn btn-primary">
             <ArrowLeft size={18} className="mr-2" />
-            Back to Products
+            Back to Digital Products
           </Link>
         </div>
       </div>
     );
   }
 
-  const inputFields = product.inputFields || [];
+  const productType = getProductType(product);
+  const IconComponent = productTypeIcons[productType] || Package;
   const selectedPkg = packages.find(p => p.id === selectedPackage);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-primary-600 py-6">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 py-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link 
-            to="/products" 
+            to="/digital" 
             className="inline-flex items-center text-white/80 hover:text-white transition-colors"
           >
             <ArrowLeft size={20} className="mr-2" />
-            Back to Products
+            Back to Digital Products
           </Link>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Product Info Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
-          <div className="flex flex-col md:flex-row">
-            {/* Image */}
-            <div className="md:w-72 h-56 md:h-auto bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 flex-shrink-0">
-              {product.imageUrl ? (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Left Column - Product Images */}
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="relative aspect-[4/3] bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700">
+              {productImages[currentImageIndex] ? (
                 <img 
-                  src={getImageUrl(product.imageUrl)} 
+                  src={getImageUrl(productImages[currentImageIndex])} 
                   alt={product.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                  className="w-full h-full object-contain cursor-pointer"
+                  onClick={() => setShowPreview(true)}
                 />
-              ) : null}
-              <div className={`w-full h-full items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}>
-                <Gamepad2 size={64} className="text-primary-400 dark:text-primary-600" />
-              </div>
-            </div>
-            
-            {/* Info */}
-            <div className="flex-1 p-6">
-              <div className="mb-3">
-                <span className="badge badge-primary">
-                  {product.category_name}
-                </span>
-              </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                {product.name}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                {product.description || 'No description available'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Package Selection */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-            Select Package
-          </h2>
-          
-          {packages.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {packages.map((pkg) => (
-                <div
-                  key={pkg.id}
-                  onClick={() => setSelectedPackage(pkg.id)}
-                  className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                    selectedPackage === pkg.id
-                      ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary-300 dark:hover:border-primary-700'
-                  }`}
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-secondary-100 dark:from-primary-900 dark:to-secondary-900">
+                  <IconComponent size={80} className="text-primary-400 dark:text-primary-600" />
+                </div>
+              )}
+              
+              {/* Preview Button */}
+              {productImages[currentImageIndex] && (
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className="absolute bottom-4 right-4 px-4 py-2 bg-black/60 hover:bg-black/80 text-white rounded-lg flex items-center transition-colors"
                 >
-                  {selectedPackage === pkg.id && (
-                    <div className="absolute top-3 right-3 w-6 h-6 bg-primary-600 rounded-full flex items-center justify-center z-10">
-                      <Check size={14} className="text-white" />
-                    </div>
-                  )}
-                  <div className="flex gap-3">
-                    {/* Package Image */}
-                    {pkg.imageUrl && (
-                      <div className="flex-shrink-0">
-                        <img 
-                          src={getImageUrl(pkg.imageUrl)} 
-                          alt={pkg.name}
-                          className="w-16 h-16 rounded-lg object-cover"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
+                  <Eye size={18} className="mr-2" />
+                  Preview
+                </button>
+              )}
+
+              {/* Navigation Arrows */}
+              {productImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentImageIndex(i => i === 0 ? productImages.length - 1 : i - 1)}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                  <button
+                    onClick={() => setCurrentImageIndex(i => i === productImages.length - 1 ? 0 : i + 1)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Thumbnails */}
+            {productImages.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {productImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      idx === currentImageIndex 
+                        ? 'border-primary-600 ring-2 ring-primary-200' 
+                        : 'border-gray-200 dark:border-gray-700 hover:border-primary-400'
+                    }`}
+                  >
+                    {img ? (
+                      <img src={getImageUrl(img)} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <IconComponent size={24} className="text-gray-400" />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1 pr-8 truncate">
-                        {pkg.name}
-                      </h3>
-                      {pkg.description && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
-                          {pkg.description}
-                        </p>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Features */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Product Features</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <Download size={16} className="mr-2 text-green-500" />
+                  Instant Download
+                </div>
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <Shield size={16} className="mr-2 text-blue-500" />
+                  Secure Payment
+                </div>
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <Zap size={16} className="mr-2 text-yellow-500" />
+                  Email Delivery
+                </div>
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <FileText size={16} className="mr-2 text-purple-500" />
+                  {productType === 'ebook' ? 'PDF Format' : 'Original Files'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Product Info & Purchase */}
+          <div className="space-y-6">
+            {/* Product Info */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="badge badge-primary flex items-center">
+                  <IconComponent size={14} className="mr-1" />
+                  {product.service_type || 'Digital Product'}
+                </span>
+                <span className="badge badge-secondary">{product.category_name}</span>
+              </div>
+              
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                {product.name}
+              </h1>
+              
+              {/* Rating */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center">
+                  {[1,2,3,4,5].map(i => (
+                    <Star 
+                      key={i} 
+                      size={18} 
+                      className={i <= 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} 
+                    />
+                  ))}
+                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">4.0 (24 reviews)</span>
+                </div>
+              </div>
+              
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                {product.description || 'High-quality digital product with instant download access after purchase.'}
+              </p>
+            </div>
+
+            {/* Package Selection */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                Select Package
+              </h2>
+              
+              {packages.length > 0 ? (
+                <div className="space-y-3">
+                  {packages.map((pkg) => (
+                    <div
+                      key={pkg.id}
+                      onClick={() => setSelectedPackage(pkg.id)}
+                      className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                        selectedPackage === pkg.id
+                          ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary-300 dark:hover:border-primary-700'
+                      }`}
+                    >
+                      {selectedPackage === pkg.id && (
+                        <div className="absolute top-3 right-3 w-6 h-6 bg-primary-600 rounded-full flex items-center justify-center">
+                          <Check size={14} className="text-white" />
+                        </div>
                       )}
-                      <p className="text-xl font-bold text-secondary-500">
-                        Rp {Number(pkg.price).toLocaleString('id-ID')}
-                      </p>
+                      <div className="flex items-start gap-4">
+                        {pkg.imageUrl && (
+                          <img 
+                            src={getImageUrl(pkg.imageUrl)} 
+                            alt={pkg.name}
+                            className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 dark:text-white mb-1 pr-8">
+                            {pkg.name}
+                          </h3>
+                          {pkg.description && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
+                              {pkg.description}
+                            </p>
+                          )}
+                          <p className="text-xl font-bold text-secondary-500">
+                            Rp {Number(pkg.price).toLocaleString('id-ID')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 dark:text-gray-400 text-center py-4">
+                  No packages available.
+                </p>
+              )}
+            </div>
+
+            {/* Delivery Info Form */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                Delivery Information
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="label">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    className="input-field"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="your@email.com"
+                    required
+                  />
+                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    Download link will be sent to this email
+                  </p>
+                </div>
+                <div>
+                  <label className="label">
+                    Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    placeholder="Your name"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start space-x-3">
+                <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Purchase Card */}
+            <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-6 text-white shadow-lg">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-primary-200 text-sm mb-1">Total Amount</p>
+                    <p className="text-3xl font-bold">
+                      {selectedPkg ? `Rp ${Number(selectedPkg.price).toLocaleString('id-ID')}` : '-'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center text-primary-200 text-sm">
+                      <CheckCircle size={16} className="mr-1" />
+                      Instant delivery
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-600 dark:text-gray-400 text-center py-8">
-              No packages available for this product.
-            </p>
-          )}
-        </div>
-
-        {/* Dynamic Form Fields */}
-        {inputFields.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              Required Information
-            </h2>
-            <div className="space-y-4">
-              {inputFields.map((field) => (
-                <div key={field.name}>
-                  <label className="label">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      className="input-field"
-                      value={formData[field.name] || ''}
-                      onChange={(e) => handleInputChange(field.name, e.target.value)}
-                      placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-                      required={field.required}
-                      rows={4}
-                    />
-                  ) : (
-                    <input
-                      type={field.type || 'text'}
-                      className="input-field"
-                      value={formData[field.name] || ''}
-                      onChange={(e) => handleInputChange(field.name, e.target.value)}
-                      placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-                      required={field.required}
-                    />
-                  )}
-                  {field.help && (
-                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{field.help}</p>
-                  )}
-                </div>
-              ))}
+                <button
+                  className="w-full flex items-center justify-center px-8 py-4 bg-secondary-500 hover:bg-secondary-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleProceedToPayment}
+                  disabled={submitting || !selectedPackage || packages.length === 0}
+                >
+                  <CreditCard size={20} className="mr-2" />
+                  Purchase Now
+                </button>
+              </div>
             </div>
           </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start space-x-3">
-            <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
-          </div>
-        )}
-
-        {/* Checkout Card */}
-        <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-6 text-white">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-primary-200 text-sm mb-1">Total Amount</p>
-              <p className="text-3xl font-bold">
-                {selectedPkg ? `Rp ${Number(selectedPkg.price).toLocaleString('id-ID')}` : '-'}
-              </p>
-            </div>
-            <button
-              className="flex items-center justify-center px-8 py-4 bg-secondary-500 hover:bg-secondary-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleProceedToPayment}
-              disabled={submitting || !selectedPackage || packages.length === 0}
-            >
-              <CreditCard size={20} className="mr-2" />
-              Proceed to Payment
-            </button>
-          </div>
-          <p className="mt-4 text-sm text-primary-200 text-center sm:text-left">
-            Complete payment and upload proof. Admin will be notified automatically via email.
-          </p>
         </div>
       </div>
+
+      {/* Image Preview Modal */}
+      {showPreview && productImages[currentImageIndex] && (
+        <div 
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowPreview(false)}
+        >
+          <button
+            onClick={() => setShowPreview(false)}
+            className="absolute top-4 right-4 p-2 text-white/80 hover:text-white"
+          >
+            <X size={32} />
+          </button>
+          <img
+            src={getImageUrl(productImages[currentImageIndex])}
+            alt={product.name}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* Payment Modal */}
       {showPaymentModal && (
@@ -476,7 +626,7 @@ function ProductDetail() {
           >
             {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Payment Details</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Complete Payment</h2>
               <button 
                 onClick={handleClosePaymentModal}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
@@ -501,12 +651,13 @@ function ProductDetail() {
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 mb-6 text-left">
                     <p className="text-sm text-green-800 dark:text-green-200">
                       <strong>Admin telah diberitahu via email.</strong><br />
-                      Pesanan Anda akan segera diproses. Silakan tunggu konfirmasi dari admin.
+                      Link download akan dikirimkan ke <strong>{formData.email}</strong> setelah pembayaran dikonfirmasi.
                     </p>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 text-left text-sm space-y-2">
                     <p><span className="text-gray-500">Produk:</span> <span className="font-medium text-gray-900 dark:text-white">{orderData?.product_name}</span></p>
                     <p><span className="text-gray-500">Paket:</span> <span className="font-medium text-gray-900 dark:text-white">{orderData?.package_name}</span></p>
+                    <p><span className="text-gray-500">Email:</span> <span className="font-medium text-gray-900 dark:text-white">{formData.email}</span></p>
                     {orderData?.promo_code && (
                       <p><span className="text-gray-500">Kode Promo:</span> <span className="font-medium text-green-600">{orderData.promo_code}</span></p>
                     )}
@@ -539,18 +690,20 @@ function ProductDetail() {
                         <span className="font-medium text-gray-900 dark:text-white">{selectedPkg?.name}</span>
                       </div>
                       <div className="flex justify-between">
+                        <span>Delivery to:</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{formData.email}</span>
+                      </div>
+                      <div className="flex justify-between">
                         <span>Harga:</span>
                         <span className={`font-medium ${promoApplied ? 'line-through text-gray-400' : 'text-gray-900 dark:text-white'}`}>
                           Rp {selectedPkg ? Number(selectedPkg.price).toLocaleString('id-ID') : '-'}
                         </span>
                       </div>
                       {promoApplied && (
-                        <>
-                          <div className="flex justify-between text-green-600 dark:text-green-400">
-                            <span>Diskon ({promoApplied.code}):</span>
-                            <span>-Rp {Number(promoApplied.discount_amount).toLocaleString('id-ID')}</span>
-                          </div>
-                        </>
+                        <div className="flex justify-between text-green-600 dark:text-green-400">
+                          <span>Diskon ({promoApplied.code}):</span>
+                          <span>-Rp {Number(promoApplied.discount_amount).toLocaleString('id-ID')}</span>
+                        </div>
                       )}
                       <div className="pt-2 mt-2 border-t border-primary-200 dark:border-primary-700 flex justify-between">
                         <span className="font-semibold text-gray-900 dark:text-white">Total Bayar:</span>
@@ -614,7 +767,6 @@ function ProductDetail() {
                     <div className="space-y-4">
                       <h3 className="font-semibold text-gray-900 dark:text-white">Transfer to:</h3>
                       
-                      {/* Bank Details */}
                       {paymentSettings.bank_name && (
                         <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
                           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Bank / E-Wallet</p>
@@ -630,13 +782,8 @@ function ProductDetail() {
                                 <button
                                   onClick={copyAccountNumber}
                                   className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                  title="Copy account number"
                                 >
-                                  {copied ? (
-                                    <Check size={18} className="text-green-500" />
-                                  ) : (
-                                    <Copy size={18} className="text-gray-500" />
-                                  )}
+                                  {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} className="text-gray-500" />}
                                 </button>
                               </div>
                             </div>
@@ -651,7 +798,6 @@ function ProductDetail() {
                         </div>
                       )}
 
-                      {/* QR Code */}
                       {paymentSettings.qr_code && (
                         <div className="text-center">
                           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Or scan QR Code:</p>
@@ -666,7 +812,7 @@ function ProductDetail() {
                   ) : (
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
                       <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                        Payment details have not been configured. Please contact admin.
+                        Payment details not configured. Please contact admin.
                       </p>
                     </div>
                   )}
@@ -685,12 +831,8 @@ function ProductDetail() {
                           ) : (
                             <>
                               <Upload size={32} className="text-gray-400 mb-2" />
-                              <p className="text-sm text-gray-500 dark:text-gray-400 text-center px-4">
-                                Click to upload payment proof
-                              </p>
-                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                PNG, JPG, max 5MB
-                              </p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Click to upload</p>
+                              <p className="text-xs text-gray-400 mt-1">PNG, JPG, max 5MB</p>
                             </>
                           )}
                         </div>
@@ -719,7 +861,7 @@ function ProductDetail() {
                     )}
                   </div>
 
-                  {/* Error Message */}
+                  {/* Error */}
                   {error && (
                     <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start space-x-3">
                       <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
@@ -747,7 +889,7 @@ function ProductDetail() {
                   </button>
 
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    Setelah konfirmasi, admin akan diberitahu via email dan pesanan Anda akan segera diproses.
+                    Setelah konfirmasi, admin akan diberitahu via email. Link download akan dikirim ke email Anda setelah pembayaran diverifikasi.
                   </p>
                 </>
               )}
@@ -759,4 +901,4 @@ function ProductDetail() {
   );
 }
 
-export default ProductDetail;
+export default DigitalProductDetail;

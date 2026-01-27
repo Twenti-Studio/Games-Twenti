@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Footer from './components/layout/Footer';
 import Navbar from './components/layout/Navbar';
+import DigitalProductCatalog from './pages/DigitalProductCatalog';
+import DigitalProductDetail from './pages/DigitalProductDetail';
 import Home from './pages/Home';
 import ProductCatalog from './pages/ProductCatalog';
 import ProductDetail from './pages/ProductDetail';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminLogin from './pages/admin/AdminLogin';
 import CategoryManagement from './pages/admin/CategoryManagement';
+import DigitalProductManagement from './pages/admin/DigitalProductManagement';
 import OrderHistory from './pages/admin/OrderHistory';
 import PackageManagement from './pages/admin/PackageManagement';
 import ProductManagement from './pages/admin/ProductManagement';
+import PromoManagement from './pages/admin/PromoManagement';
 import Settings from './pages/admin/Settings';
 import { authAPI } from './utils/api';
 
@@ -87,6 +91,22 @@ function App() {
             </>
           } />
 
+          {/* Digital Products Routes */}
+          <Route path="/digital" element={
+            <>
+              <Navbar />
+              <DigitalProductCatalog />
+              <Footer />
+            </>
+          } />
+          <Route path="/digital/:id" element={
+            <>
+              <Navbar />
+              <DigitalProductDetail />
+              <Footer />
+            </>
+          } />
+
           {/* Admin Routes */}
           <Route path="/admin/login" element={
             isAuthenticated ? <Navigate to="/admin/dashboard" /> : <AdminLogin onLogin={handleLogin} />
@@ -115,6 +135,14 @@ function App() {
               </>
             </PrivateRoute>
           } />
+          <Route path="/admin/digital-products" element={
+            <PrivateRoute>
+              <>
+                <Navbar isAdmin={true} onLogout={handleLogout} />
+                <DigitalProductManagement />
+              </>
+            </PrivateRoute>
+          } />
           <Route path="/admin/products/:productId/packages" element={
             <PrivateRoute>
               <>
@@ -128,6 +156,14 @@ function App() {
               <>
                 <Navbar isAdmin={true} onLogout={handleLogout} />
                 <OrderHistory />
+              </>
+            </PrivateRoute>
+          } />
+          <Route path="/admin/promo" element={
+            <PrivateRoute>
+              <>
+                <Navbar isAdmin={true} onLogout={handleLogout} />
+                <PromoManagement />
               </>
             </PrivateRoute>
           } />

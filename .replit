@@ -10,7 +10,7 @@ run = ["sh", "-c", "cd client && npm run build"]
 
 [env]
 NODE_ENV = "production"
-PORT = "3000"
+PORT = "3001"
 CLIENT_URL = "http://localhost:5173"
 
 [packager]

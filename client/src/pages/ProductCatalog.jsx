@@ -1,22 +1,53 @@
-import { Filter, Gamepad2, Package, Search, Tv, Users } from 'lucide-react';
+import { BookOpen, Download, FileSpreadsheet, Filter, Gamepad2, Layout, Package, Search, Tv, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { getImageUrl, publicAPI } from '../utils/api';
+
 
 // Map category icons
 const categoryIcons = {
   'game': Gamepad2,
   'digital-subscription': Tv,
   'social-media-services': Users,
+  'ebook': BookOpen,
+  'e-book': BookOpen,
+  'template': Layout,
+  'template-spreadsheet': FileSpreadsheet,
+  'template-wordpress': Layout,
+  'digital-product': Package,
+  'digital': Package,
 };
+
+// Check if product is digital
+const isDigitalProduct = (product) => {
+  const serviceType = (product.serviceType || product.service_type || '').toLowerCase().replace(/-/g, '');
+  const categorySlug = (product.category_slug || '').toLowerCase().replace(/-/g, '');
+  return (
+    serviceType.includes('ebook') ||
+    serviceType.includes('template') ||
+    serviceType.includes('digital') ||
+    categorySlug.includes('ebook') ||
+    categorySlug.includes('template') ||
+    categorySlug.includes('digital')
+  );
+};
+
+// Product type filters
+const productTypeFilters = [
+  { id: 'all', name: 'All Products', icon: Filter },
+  { id: 'game', name: 'Game Top-Up', icon: Gamepad2 },
+  { id: 'digital', name: 'Digital Products', icon: BookOpen },
+];
 
 function ProductCatalog() {
   const { categoryId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [productTypeFilter, setProductTypeFilter] = useState(searchParams.get('type') || 'all');
 
   useEffect(() => {
     fetchCategories();
@@ -69,11 +100,47 @@ function ProductCatalog() {
     }
   };
 
-  // Filter products by search - ensure products is always an array
-  const filteredProducts = (Array.isArray(products) ? products : []).filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Handle product type filter change
+  const handleTypeFilterChange = (typeId) => {
+    setProductTypeFilter(typeId);
+    if (typeId === 'all') {
+      searchParams.delete('type');
+    } else {
+      searchParams.set('type', typeId);
+    }
+    setSearchParams(searchParams);
+  };
+
+  // Filter products by search and type
+  const filteredProducts = (Array.isArray(products) ? products : []).filter(product => {
+    // Search filter
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Type filter
+    if (productTypeFilter === 'all') return matchesSearch;
+    if (productTypeFilter === 'game') return matchesSearch && !isDigitalProduct(product);
+    if (productTypeFilter === 'digital') return matchesSearch && isDigitalProduct(product);
+    
+    return matchesSearch;
+  });
+
+  // Get product detail link based on type
+  const getProductLink = (product) => {
+    return isDigitalProduct(product) ? `/digital/${product.id}` : `/products/${product.id}`;
+  };
+
+  // Get product icon based on type
+  const getProductIcon = (product) => {
+    if (isDigitalProduct(product)) {
+      const serviceType = (product.serviceType || product.service_type || '').toLowerCase();
+      if (serviceType.includes('ebook') || serviceType.includes('e-book')) return BookOpen;
+      if (serviceType.includes('spreadsheet') || serviceType.includes('excel')) return FileSpreadsheet;
+      if (serviceType.includes('template')) return Layout;
+      return Package;
+    }
+    return Gamepad2;
+  };
 
   if (loading) {
     return (
@@ -140,6 +207,27 @@ function ProductCatalog() {
           </div>
         </div>
 
+        {/* Product Type Filter */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {productTypeFilters.map((filter) => {
+            const IconComponent = filter.icon;
+            return (
+              <button
+                key={filter.id}
+                onClick={() => handleTypeFilterChange(filter.id)}
+                className={`inline-flex items-center px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  productTypeFilter === filter.id
+                    ? 'bg-secondary-500 text-white shadow-md'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <IconComponent size={16} className="mr-2" />
+                {filter.name}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Category Filter (Desktop) */}
         <div className="hidden md:flex flex-wrap gap-3 mb-8">
           <Link
@@ -151,7 +239,7 @@ function ProductCatalog() {
             }`}
           >
             <Filter size={18} className="mr-2" />
-            All Products
+            All Categories
           </Link>
           {categories.map((category) => {
             const IconComponent = categoryIcons[category.slug] || Package;
@@ -175,44 +263,58 @@ function ProductCatalog() {
         {/* Products Grid */}
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <Link
-                key={product.id}
-                to={`/products/${product.id}`}
-                className="group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700"
-              >
-                {/* Image */}
-                <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 relative overflow-hidden">
-                  {product.imageUrl ? (
-                    <img 
-                      src={getImageUrl(product.imageUrl)} 
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                    />
-                  ) : null}
-                  <div className={`w-full h-full items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}>
-                    <Gamepad2 size={48} className="text-primary-400 dark:text-primary-600" />
+            {filteredProducts.map((product) => {
+              const ProductIcon = getProductIcon(product);
+              const isDigital = isDigitalProduct(product);
+              
+              return (
+                <Link
+                  key={product.id}
+                  to={getProductLink(product)}
+                  className="group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700"
+                >
+                  {/* Image */}
+                  <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800 relative overflow-hidden">
+                    {product.imageUrl ? (
+                      <img 
+                        src={getImageUrl(product.imageUrl)} 
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}>
+                      <ProductIcon size={48} className="text-primary-400 dark:text-primary-600" />
+                    </div>
+                    {/* Category Badge */}
+                    <div className="absolute top-3 left-3">
+                      <span className="px-3 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-semibold text-primary-600 dark:text-secondary-400">
+                        {product.category_name}
+                      </span>
+                    </div>
+                    {/* Digital Badge */}
+                    {isDigital && (
+                      <div className="absolute bottom-3 right-3">
+                        <span className="px-2.5 py-1.5 bg-green-500/90 text-white rounded-lg text-xs font-medium flex items-center">
+                          <Download size={12} className="mr-1" />
+                          Digital
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  {/* Category Badge */}
-                  <div className="absolute top-3 left-3">
-                    <span className="px-3 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-semibold text-primary-600 dark:text-secondary-400">
-                      {product.category_name}
-                    </span>
+                  
+                  {/* Content */}
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 dark:group-hover:text-secondary-400 transition-colors">
+                      {product.name}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
+                      {product.description || (isDigital ? 'Digital product with instant download' : 'Click to view details and packages')}
+                    </p>
                   </div>
-                </div>
-                
-                {/* Content */}
-                <div className="p-5">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 dark:group-hover:text-secondary-400 transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
-                    {product.description || 'Click to view details and packages'}
-                  </p>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-16">

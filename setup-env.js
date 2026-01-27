@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const envExample = `# Server Configuration
-PORT=3000
+PORT=3001
 NODE_ENV=development
 
 # Client URL

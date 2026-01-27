@@ -52,14 +52,14 @@ COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3001
 
 # Set environment
 ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/public/categories || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/public/categories || exit 1
 
 # Use entrypoint script
 ENTRYPOINT ["./docker-entrypoint.sh"]

@@ -69,7 +69,7 @@ router.get('/:id', async (req, res) => {
 // Create package (admin only)
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { product_id, name, description, image_url, price, enabled } = req.body;
+    const { product_id, name, description, image_url, price, download_url, file_type, enabled } = req.body;
     
     if (!product_id || !name || price === undefined) {
       return res.status(400).json({ error: 'Product ID, name, and price are required' });
@@ -85,16 +85,14 @@ router.post('/', requireAuth, async (req, res) => {
         name,
         description: description || null,
         imageUrl: image_url || null,
+        downloadUrl: download_url || null,
+        fileType: file_type || null,
         price: parseFloat(price),
         enabled: enabled !== undefined ? Boolean(enabled) : true
       }
     });
 
-    // Transform to snake_case for frontend
-    res.status(201).json({
-      ...pkg,
-      image_url: pkg.imageUrl
-    });
+    res.status(201).json(transformPackage(pkg));
   } catch (error) {
     console.error('Error creating package:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -104,7 +102,7 @@ router.post('/', requireAuth, async (req, res) => {
 // Update package (admin only)
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const { name, description, image_url, price, enabled } = req.body;
+    const { name, description, image_url, price, download_url, file_type, enabled } = req.body;
     const id = parseInt(req.params.id);
 
     const existing = await prisma.package.findUnique({ where: { id } });
@@ -122,16 +120,14 @@ router.put('/:id', requireAuth, async (req, res) => {
         name: name || existing.name,
         description: description !== undefined ? description : existing.description,
         imageUrl: image_url !== undefined ? image_url : existing.imageUrl,
+        downloadUrl: download_url !== undefined ? download_url : existing.downloadUrl,
+        fileType: file_type !== undefined ? file_type : existing.fileType,
         price: price !== undefined ? parseFloat(price) : existing.price,
         enabled: enabled !== undefined ? Boolean(enabled) : existing.enabled
       }
     });
 
-    // Transform to snake_case for frontend
-    res.json({
-      ...updated,
-      image_url: updated.imageUrl
-    });
+    res.json(transformPackage(updated));
   } catch (error) {
     console.error('Error updating package:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -160,6 +156,13 @@ router.patch('/:id', requireAuth, async (req, res) => {
     if (req.body.image_url !== undefined) {
       updateData.imageUrl = req.body.image_url;
     }
+
+    if (req.body.download_url !== undefined) {
+      updateData.downloadUrl = req.body.download_url;
+    }
+    if (req.body.file_type !== undefined) {
+      updateData.fileType = req.body.file_type;
+    }
     if (req.body.price !== undefined) {
       if (isNaN(req.body.price) || req.body.price < 0) {
         return res.status(400).json({ error: 'Price must be a valid positive number' });
@@ -180,10 +183,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
       data: updateData
     });
 
-    res.json({
-      ...updated,
-      image_url: updated.imageUrl
-    });
+    res.json(transformPackage(updated));
   } catch (error) {
     console.error('Error patching package:', error);
     res.status(500).json({ error: 'Internal server error' });

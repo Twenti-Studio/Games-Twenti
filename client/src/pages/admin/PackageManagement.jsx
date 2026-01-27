@@ -1,7 +1,34 @@
-import { Link2, Upload, X } from 'lucide-react';
+import { Download, FileText, Link2, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { adminAPI, getChangedFields, getImageUrl, publicAPI } from '../../utils/api';
+
+// Check if product is digital
+const isDigitalProduct = (product) => {
+  if (!product) return false;
+  const serviceType = product.serviceType?.toLowerCase() || product.service_type?.toLowerCase() || '';
+  return (
+    serviceType.includes('ebook') ||
+    serviceType.includes('e-book') ||
+    serviceType.includes('template') ||
+    serviceType.includes('digital')
+  );
+};
+
+// File type options for digital products
+const fileTypeOptions = [
+  { value: '', label: 'Select file type' },
+  { value: 'PDF', label: 'PDF Document' },
+  { value: 'XLSX', label: 'Excel Spreadsheet (.xlsx)' },
+  { value: 'XLS', label: 'Excel Spreadsheet (.xls)' },
+  { value: 'DOCX', label: 'Word Document (.docx)' },
+  { value: 'ZIP', label: 'ZIP Archive' },
+  { value: 'RAR', label: 'RAR Archive' },
+  { value: 'PSD', label: 'Photoshop (.psd)' },
+  { value: 'AI', label: 'Illustrator (.ai)' },
+  { value: 'FIG', label: 'Figma File' },
+  { value: 'OTHER', label: 'Other' },
+];
 
 function PackageManagement() {
   const { productId } = useParams();
@@ -10,12 +37,15 @@ function PackageManagement() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', price: '', image_url: '', enabled: true });
+  const [formData, setFormData] = useState({ 
+    name: '', description: '', price: '', image_url: '', 
+    download_url: '', file_type: '', enabled: true 
+  });
   const [error, setError] = useState('');
   const [imageMode, setImageMode] = useState('url');
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
-  const originalDataRef = useRef(null); // Store original data for comparison
+  const originalDataRef = useRef(null);
 
   useEffect(() => {
     fetchData();
@@ -47,10 +77,11 @@ function PackageManagement() {
         description: pkg.description || '',
         price: pkg.price,
         image_url: pkg.image_url || '',
+        download_url: pkg.download_url || '',
+        file_type: pkg.file_type || '',
         enabled: pkg.enabled === 1
       };
       setFormData(initialData);
-      // Store original data for comparison
       originalDataRef.current = { ...initialData };
       if (pkg.image_url) {
         setImagePreview(getImageUrl(pkg.image_url));
@@ -61,7 +92,10 @@ function PackageManagement() {
       }
     } else {
       setEditingPackage(null);
-      setFormData({ name: '', description: '', price: '', image_url: '', enabled: true });
+      setFormData({ 
+        name: '', description: '', price: '', image_url: '', 
+        download_url: '', file_type: '', enabled: true 
+      });
       setImagePreview(null);
       setImageMode('url');
       originalDataRef.current = null;
@@ -73,7 +107,10 @@ function PackageManagement() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingPackage(null);
-    setFormData({ name: '', description: '', price: '', image_url: '', enabled: true });
+    setFormData({ 
+      name: '', description: '', price: '', image_url: '', 
+      download_url: '', file_type: '', enabled: true 
+    });
     setError('');
     setImagePreview(null);
     setImageMode('url');
@@ -198,6 +235,9 @@ function PackageManagement() {
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Description</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Price</th>
+                  {isDigitalProduct(product) && (
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Download</th>
+                  )}
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
                 </tr>
@@ -222,6 +262,28 @@ function PackageManagement() {
                       <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">{pkg.name}</td>
                       <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{pkg.description || '-'}</td>
                       <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Rp {pkg.price.toLocaleString('id-ID')}</td>
+                      {isDigitalProduct(product) && (
+                        <td className="py-3 px-4">
+                          {pkg.download_url ? (
+                            <div className="flex items-center gap-2">
+                              <span className="badge badge-info flex items-center gap-1">
+                                <FileText size={12} />
+                                {pkg.file_type || 'File'}
+                              </span>
+                              <a 
+                                href={pkg.download_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary-600 hover:text-primary-700 text-xs"
+                              >
+                                View Link
+                              </a>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-sm">Not set</span>
+                          )}
+                        </td>
+                      )}
                       <td className="py-3 px-4">
                         <span className={`badge ${pkg.enabled ? 'badge-success' : 'badge-danger'}`}>
                           {pkg.enabled ? 'Enabled' : 'Disabled'}
@@ -247,7 +309,7 @@ function PackageManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={isDigitalProduct(product) ? 7 : 6} className="py-12 text-center text-gray-500 dark:text-gray-400">
                       No packages found. Create your first package!
                     </td>
                   </tr>
@@ -415,6 +477,51 @@ function PackageManagement() {
                     </div>
                   )}
                 </div>
+
+                {/* Digital Product Fields */}
+                {isDigitalProduct(product) && (
+                  <>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Download size={18} className="text-blue-600 dark:text-blue-400" />
+                        <span className="font-semibold text-blue-800 dark:text-blue-200">Digital Product Settings</span>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Download URL / Link
+                          </label>
+                          <input
+                            type="url"
+                            className="input-field"
+                            value={formData.download_url}
+                            onChange={(e) => setFormData({ ...formData, download_url: e.target.value })}
+                            placeholder="https://drive.google.com/... or direct link"
+                          />
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Link download yang akan diberikan ke pembeli setelah konfirmasi
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            File Type
+                          </label>
+                          <select
+                            className="input-field"
+                            value={formData.file_type}
+                            onChange={(e) => setFormData({ ...formData, file_type: e.target.value })}
+                          >
+                            {fileTypeOptions.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
