@@ -24,14 +24,14 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install necessary packages for Prisma and shell script
+# Install necessary packages for Prisma
 RUN apk add --no-cache openssl
 
 # Copy backend package files
 COPY package*.json ./
 
-# Install all dependencies (including prisma for migrations)
-RUN npm ci
+# Install production dependencies
+RUN npm ci --omit=dev
 
 # Copy Prisma schema and migrations
 COPY prisma ./prisma/
@@ -42,14 +42,18 @@ RUN npx prisma generate
 # Copy backend source
 COPY server.js ./
 COPY routes ./routes/
+COPY services ./services/
 COPY database ./database/
 
-# Copy built frontend from previous stage (includes public folder assets)
+# Copy built frontend from previous stage
 COPY --from=frontend-builder /app/client/dist ./client/dist
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
+
+# Create uploads directory
+RUN mkdir -p /app/uploads
 
 # Expose port
 EXPOSE 3001
@@ -59,7 +63,7 @@ ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/public/categories || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
 # Use entrypoint script
 ENTRYPOINT ["./docker-entrypoint.sh"]

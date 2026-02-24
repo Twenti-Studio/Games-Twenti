@@ -26,10 +26,10 @@ import categoryRoutes from './routes/categories.js';
 import orderRoutes from './routes/orders.js';
 import packageRoutes from './routes/packages.js';
 import productRoutes from './routes/products.js';
+import promoRoutes from './routes/promo.js';
 import publicRoutes from './routes/public.js';
 import settingsRoutes from './routes/settings.js';
 import uploadRoutes from './routes/upload.js';
-import promoRoutes from './routes/promo.js';
 console.log('Routes imported');
 
 const app = express();
@@ -65,10 +65,10 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
@@ -93,7 +93,7 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-origin
+    sameSite: 'lax', // Same-origin deployment, lax is secure and correct
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -112,8 +112,14 @@ app.use('/api/public', publicRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/promo', promoRoutes);
 
-// Root endpoint
-app.get('/', (req, res) => {
+// Serve frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+  const clientDistPath = path.join(__dirname, 'client', 'dist');
+  app.use(express.static(clientDistPath));
+}
+
+// API root endpoint
+app.get('/api', (req, res) => {
   res.json({ message: 'Game Twenti API', version: '1.0.0' });
 });
 
@@ -122,20 +128,27 @@ app.get('/health', async (req, res) => {
   try {
     // Test database connection
     await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({ 
-      status: 'ok', 
+    res.status(200).json({
+      status: 'ok',
       database: 'connected',
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString()
     });
   } catch (err) {
-    res.status(500).json({ 
-      status: 'error', 
+    res.status(500).json({
+      status: 'error',
       database: 'disconnected',
       error: err.message,
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString()
     });
   }
 });
+
+// SPA fallback - serve index.html for all non-API routes in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+  });
+}
 
 // Handle uncaught errors
 process.on('uncaughtException', (err) => {
@@ -155,3 +168,18 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 server.on('error', (err) => {
   console.error('Server error:', err);
 });
+
+// Graceful shutdown
+const gracefulShutdown = async (signal) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  server.close(async () => {
+    await prisma.$disconnect();
+    console.log('Server closed');
+    process.exit(0);
+  });
+  // Force exit after 10 seconds
+  setTimeout(() => process.exit(1), 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

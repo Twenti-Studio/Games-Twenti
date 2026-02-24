@@ -39,8 +39,11 @@ coverage
 .replit
 replit.nix
 setup-env.js
-ENV_SETUP.md
-QUICKSTART.md
 
-# Prisma migrations lock
-prisma/migrations/**/migration_lock.toml
+# Fly.io files (using VPS now)
+fly.toml
+Dockerfile.fly
+
+# Legacy database
+database/*.db
+database/*.sqlite

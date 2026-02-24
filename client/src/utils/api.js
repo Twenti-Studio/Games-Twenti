@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// In production, frontend is served from the same server - use relative URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -49,27 +51,27 @@ export const adminAPI = {
   updateCategory: (id, data) => api.put(`/categories/${id}`, data),
   patchCategory: (id, data) => api.patch(`/categories/${id}`, data),
   deleteCategory: (id) => api.delete(`/categories/${id}`),
-  
+
   // Products
   getProducts: () => api.get('/products/admin'),
   createProduct: (data) => api.post('/products', data),
   updateProduct: (id, data) => api.put(`/products/${id}`, data),
   patchProduct: (id, data) => api.patch(`/products/${id}`, data),
   deleteProduct: (id) => api.delete(`/products/${id}`),
-  
+
   // Packages
   getPackages: (productId) => api.get(`/packages/product/${productId}/admin`),
   createPackage: (data) => api.post('/packages', data),
   updatePackage: (id, data) => api.put(`/packages/${id}`, data),
   patchPackage: (id, data) => api.patch(`/packages/${id}`, data),
   deletePackage: (id) => api.delete(`/packages/${id}`),
-  
+
   // Orders
   getOrders: () => api.get('/orders'),
   getOrder: (id) => api.get(`/orders/${id}`),
   updateOrderStatus: (id, status) => api.put(`/orders/${id}/status`, { status }),
   patchOrder: (id, data) => api.patch(`/orders/${id}`, data),
-  
+
   // Promo Codes
   getPromoCodes: () => api.get('/promo'),
   getPromoCode: (id) => api.get(`/promo/${id}`),
@@ -77,11 +79,11 @@ export const adminAPI = {
   updatePromoCode: (id, data) => api.put(`/promo/${id}`, data),
   patchPromoCode: (id, data) => api.patch(`/promo/${id}`, data),
   deletePromoCode: (id) => api.delete(`/promo/${id}`),
-  
+
   // Settings
   getSettings: () => api.get('/settings'),
   updateSetting: (key, value) => api.put(`/settings/${key}`, { value }),
-  
+
   // Upload
   uploadImage: (file) => {
     const formData = new FormData();
@@ -110,8 +112,8 @@ export const getChangedFields = (original, current) => {
 export const getImageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  const baseUrl = API_BASE_URL.replace('/api', '');
-  return `${baseUrl}${path}`;
+  // In production, uploads are served from the same origin
+  return path;
 };
 
 export default api;
