@@ -94,11 +94,8 @@ install_dependencies() {
 setup_nginx() {
     log_info "Setting up Nginx..."
     
-    # Copy nginx config
+    # Copy nginx config (already has correct domain: games.twenti.studio)
     cp "$APP_DIR/nginx/gametwenti.conf" /etc/nginx/sites-available/gametwenti
-    
-    # Replace domain in nginx config
-    sed -i "s/yourdomain.com/$DOMAIN/g" /etc/nginx/sites-available/gametwenti
     
     # Enable site
     ln -sf /etc/nginx/sites-available/gametwenti /etc/nginx/sites-enabled/
@@ -106,49 +103,20 @@ setup_nginx() {
     # Remove default site
     rm -f /etc/nginx/sites-enabled/default
     
-    # Test nginx config (temporarily comment out SSL for first run)
-    # Create a temporary HTTP-only config for certbot
-    cat > /etc/nginx/sites-available/gametwenti-temp << EOF
-server {
-    listen 80;
-    server_name $DOMAIN www.$DOMAIN;
-
-    location / {
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-    }
-}
-EOF
-    
-    # Use temp config first
-    ln -sf /etc/nginx/sites-available/gametwenti-temp /etc/nginx/sites-enabled/gametwenti
-    
+    # Test and reload nginx
     nginx -t && systemctl reload nginx
     log_success "Nginx configured (HTTP)"
 }
 
 # Setup SSL with Certbot
 setup_ssl() {
-    log_info "Setting up SSL certificate..."
+    log_info "Setting up SSL certificate for $DOMAIN..."
     
-    certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" --non-interactive --agree-tos --email "admin@$DOMAIN" || {
+    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email "noelsipayung45@gmail.com" || {
         log_warn "SSL setup failed. You can retry later with:"
-        log_warn "  certbot --nginx -d $DOMAIN -d www.$DOMAIN"
+        log_warn "  sudo certbot --nginx -d $DOMAIN"
         return 0
     }
-    
-    # Now use the full nginx config with SSL
-    cp "$APP_DIR/nginx/gametwenti.conf" /etc/nginx/sites-available/gametwenti
-    sed -i "s/yourdomain.com/$DOMAIN/g" /etc/nginx/sites-available/gametwenti
-    ln -sf /etc/nginx/sites-available/gametwenti /etc/nginx/sites-enabled/gametwenti
-    rm -f /etc/nginx/sites-available/gametwenti-temp
     
     nginx -t && systemctl reload nginx
     log_success "SSL certificate installed"
@@ -290,7 +258,6 @@ update_deploy() {
     # Reload nginx (in case config changed)
     if [ -f /etc/nginx/sites-available/gametwenti ]; then
         cp "$APP_DIR/nginx/gametwenti.conf" /etc/nginx/sites-available/gametwenti
-        sed -i "s/yourdomain.com/$DOMAIN/g" /etc/nginx/sites-available/gametwenti
         nginx -t 2>/dev/null && systemctl reload nginx
     fi
     
