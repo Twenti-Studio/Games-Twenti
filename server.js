@@ -60,6 +60,7 @@ connectDB();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3001',
+  'https://games.twenti.studio',
   'https://games-twenti.vercel.app',
   process.env.CLIENT_URL
 ].filter(Boolean);
