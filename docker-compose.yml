@@ -36,6 +36,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-gametwenti}:${POSTGRES_PASSWORD:-gametwenti123}@db:5432/${POSTGRES_DB:-gametwenti}?schema=public
     ports:
       - "127.0.0.1:3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
     volumes:
       - uploads_data:/app/uploads
     depends_on:
