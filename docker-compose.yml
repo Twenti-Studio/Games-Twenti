@@ -33,7 +33,9 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gametwenti}:${POSTGRES_PASSWORD:-gametwenti123}@db:5432/${POSTGRES_DB:-gametwenti}?schema=public
+      # Use the unique container name (not bare "db") so DB resolution is never
+      # ambiguous when this container is also attached to the shared edge network.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gametwenti}:${POSTGRES_PASSWORD:-gametwenti123}@gametwenti-db:5432/${POSTGRES_DB:-gametwenti}?schema=public
     ports:
       - "127.0.0.1:3001:3001"
     healthcheck:
